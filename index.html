@@ -1,5 +1,23 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+<script>
+// ====== 密码锁 ======
+// 关闭密码：把 true 改成 false 即可
+const NEED_PASSWORD = true;
+const PASSWORD = 'simoooo';
+
+if (NEED_PASSWORD) {
+    const saved = sessionStorage.getItem('portfolio_auth');
+    if (saved !== 'ok') {
+        const input = prompt('🔒 请输入访问密码：');
+        if (input !== PASSWORD) {
+            document.documentElement.innerHTML = '<body style="background:#000;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif"><h1>❌ 密码错误</h1></body>';
+            throw new Error('denied');
+        }
+        sessionStorage.setItem('portfolio_auth', 'ok');
+    }
+}
+</script>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
