@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xu Xiaoqiang | Portfolio Cassette 2025</title>
+    <meta name="description" content="徐晓强 (Simo) — 10年互联网产品体验设计经验，现任网易云音乐平台基础线设计负责人。Interface & Motion & Creative UX Designer.">
+    <meta property="og:title" content="Portfolio Cassette 2025 — Xu Xiaoqiang">
+    <meta property="og:description" content="10年互联网产品体验设计 · 网易云音乐 · 阿里巴巴 · UX Design Lead">
+    <meta property="og:image" content="images/page_01.png">
+    <meta property="og:type" content="website">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'netease': '#E60026',
+                        'cyber-bg': '#0a0a0a',
+                        'panel-bg': 'rgba(255, 255, 255, 0.03)',
+                        'border-light': 'rgba(255, 255, 255, 0.08)',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    animation: {
+                        'spin-slow': 'spin 8s linear infinite',
+                        'slide-up': 'slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+                    },
+                    keyframes: {
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    },
+                    backgroundImage: {
+                        'noise': 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        body { -ms-overflow-style: none; scrollbar-width: none; }
+        .glass { background: var(--panel-bg); backdrop-filter: blur(12px); border: 1px solid var(--border-light); }
+        .text-outline { -webkit-text-stroke: 1px rgba(255,255,255,0.3); color: transparent; }
+        .noise-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.03; pointer-events: none; z-index: 50; background-image: var(--tw-bg-image-noise); }
+        .loader { border: 2px solid rgba(255, 255, 255, 0.1); border-left-color: #E60026; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .writing-vertical {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+        }
+
+        .tape-spine {
+            position: relative;
+            height: 340px; /* 固定高度，作为几何计算基准 */
+            width: 50px;   /* 固定宽度 */
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            overflow: hidden;
+            cursor: pointer;
+            border-right: 1px solid rgba(0,0,0,0.3);
+            border-top-left-radius: 2px;
+            border-top-right-radius: 2px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.3), 4px 4px 10px rgba(0,0,0,0.4);
+            transform-origin: bottom left; /* 关键：左下角为轴心，像书一样倒 */
+            flex-shrink: 0; 
+        }
+        
+        /* 悬停展开效果 */
+        .tape-spine:hover {
+            width: 280px; /* 展开宽度 */
+            z-index: 100 !important; 
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            transform: rotate(0deg) translateY(0) !important; /* 强制回正并落地 */
+            margin-right: 4px !important; /* 重置边距为标准间距 */
+            margin-left: 0 !important;
+            border-radius: 4px;
+        }
+
+        .spine-label {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s;
+            width: 100%;
+            height: 100%;
+        }
+        .tape-spine:hover .spine-label { opacity: 0; }
+
+        .tape-face {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+            transition: opacity 0.4s ease 0.1s;
+            width: 100%;
+            min-width: 200px;
+        }
+        .tape-spine:hover .tape-face { opacity: 1; }
+
+        .cassette-texture {
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02) 0%, transparent 50%),
+                linear-gradient(to right, rgba(255,255,255,0.05) 0%, transparent 5%, transparent 95%, rgba(255,255,255,0.05) 100%);
+        }
+
+        .c-reel {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fff 20%, #333 21%, #333 40%, transparent 41%);
+            border: 2px dashed rgba(255,255,255,0.3);
+            animation: spin 4s linear infinite paused;
+        }
+        .tape-spine:hover .c-reel { animation-play-state: running; }
+
+        /* === PROJECT MODAL === */
+        .project-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .project-modal.active {
+            display: flex;
+            opacity: 1;
+        }
+        .modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.92);
+            backdrop-filter: blur(20px);
+        }
+        .modal-content {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            padding: 60px 0;
+        }
+        .modal-close {
+            position: fixed;
+            top: 20px;
+            right: 24px;
+            z-index: 210;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(12px);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        .modal-close:hover {
+            background: #E60026;
+            border-color: #E60026;
+            transform: rotate(90deg);
+        }
+        .modal-header {
+            text-align: center;
+            padding: 0 24px 40px;
+        }
+        .modal-header h2 {
+            font-size: 40px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+        }
+        .modal-header .meta-row {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+            font-size: 13px;
+            color: #888;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .modal-header .meta-row span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .page-gallery {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+        .page-gallery img {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255,255,255,0.06);
+            transition: transform 0.3s;
+        }
+        .page-gallery img:hover {
+            transform: scale(1.01);
+        }
+        /* Swiper custom */
+        .project-swiper { padding-bottom: 48px !important; }
+        .project-swiper .swiper-pagination-bullet { background: #666; opacity: 0.6; }
+        .project-swiper .swiper-pagination-bullet-active { background: #E60026; opacity: 1; }
+        .project-swiper .swiper-button-prev,
+        .project-swiper .swiper-button-next { color: white; opacity: 0.5; }
+        .project-swiper .swiper-button-prev:hover,
+        .project-swiper .swiper-button-next:hover { opacity: 1; }
+
+        /* Key metrics */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            max-width: 800px;
+            margin: 32px auto;
+            padding: 0 24px;
+        }
+        .metric-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .metric-card .num {
+            font-size: 28px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #E60026, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+        }
+        .metric-card .label {
+            font-size: 11px;
+            color: #888;
+            margin-top: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+    </style>
+</head>
+<body class="bg-cyber-bg text-white font-sans min-h-screen flex flex-col selection:bg-netease selection:text-white antialiased">
+
+    <div class="noise-bg"></div>
+
+    <!-- Modified: Added id="top-nav" and transition classes -->
+    <nav id="top-nav" class="fixed top-0 w-full z-40 px-6 py-4 flex justify-between items-center transition-all duration-500 mix-blend-difference border-b border-transparent">
+        <div class="flex items-center gap-2">
+            <i class="ph-bold ph-cassette-tape text-xl animate-pulse"></i>
+            <span class="font-mono text-xs tracking-widest text-gray-400">SIMO_PORTFOLIO_2025.CAS</span>
+        </div>
+        <div class="hidden md:flex gap-8 text-xs font-mono text-gray-400">
+            <a href="#about" class="hover:text-white transition-colors" data-nav>[ABOUT]</a>
+            <a href="#works" class="hover:text-white transition-colors" data-nav>[WORKS]</a>
+            <!-- <a href="#ai-lab" class="hover:text-netease transition-colors font-bold text-netease" data-nav>✨ [AI LAB]</a> -->
+            <a href="#contact" class="hover:text-white transition-colors" data-nav>[CONTACT]</a>
+        </div>
+    </nav>
+
+    <!-- Hero 区域 -->
+    <header class="relative w-full min-h-screen flex items-center justify-center overflow-hidden">
+        <div class="absolute top-1/2 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-netease/10 rounded-full blur-[120px]"></div>
+        
+        <div class="relative w-full max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-center z-10 pt-20 pb-10">
+            
+            <!-- Left Side: Text -->
+            <div class="space-y-6 animate-slide-up text-center md:text-left">
+                <div class="inline-flex items-center gap-2 px-3 py-1 border border-netease text-netease text-[10px] font-mono tracking-widest uppercase rounded-full">
+                    <span class="w-1.5 h-1.5 bg-netease rounded-full animate-pulse"></span>
+                    Now Playing: Side A
+                </div>
+                <h1 class="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9]">
+                    FORM<br>
+                    <span class="text-outline">FOLLOWS</span><br>
+                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-netease to-purple-500">EMOTION</span>
+                </h1>
+                <p class="text-gray-400 text-sm md:text-base font-mono leading-relaxed max-w-lg">
+                    // UX Design Lead @ NetEase Cloud Music<br>
+                    // 10年互联网产品体验设计经验<br>
+                    // 兼具"审美感性+工具理性"的双重特质
+                </p>
+                <div class="flex gap-4 justify-center md:justify-start pt-4">
+                    <a href="#works" class="bg-white text-black px-6 py-3 font-bold hover:bg-gray-200 transition rounded-full flex items-center gap-2">
+                        <i class="ph-bold ph-play"></i>
+                        PLAY ALL
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right Side: Perfect Fit Tape Shelf -->
+            <div class="w-full h-[450px] flex flex-col justify-end items-center relative z-20">
+                
+                <!-- Shelf Wrapper -->
+                <div class="flex items-end justify-center w-full max-w-[620px] relative z-10 px-2 pb-2">
+                    
+                    <!-- Tape 1: ABOUT ME (2.4° Right, Floating) -->
+                    <!-- Adjusted: 4.5px + 0.2px = 4.7px -->
+                    <div class="tape-spine bg-neutral-300 cassette-texture z-10 rotate-[2.4deg] translate-y-[4.7px]" style="margin-right: 14px;" onclick="event.stopPropagation(); document.getElementById('about').scrollIntoView({behavior:'smooth'})">
+                        <div class="spine-label writing-vertical bg-neutral-200 border-l-4 border-gray-400">
+                            <span class="text-black font-black text-sm tracking-widest uppercase rotate-180">ABOUT ME</span>
+                        </div>
+                        <div class="tape-face bg-neutral-200 text-black">
+                            <div class="flex justify-between items-start mb-6">
+                                <span class="font-black text-xl">HELLO!</span>
+                                <span class="text-[10px] border border-black px-1">A-01</span>
+                            </div>
+                            <div class="flex-1 flex items-center justify-center gap-4 border-t border-b border-black/10 py-2">
+                                <div class="c-reel border-gray-500"></div><div class="c-reel border-gray-500"></div>
+                            </div>
+                            <div class="mt-6">
+                                <h3 class="font-bold text-lg leading-tight">Xu Xiaoqiang</h3>
+                                <p class="text-xs text-gray-600 font-mono mt-1">UX Design Lead</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tape 2: EXPERIENCE (Vertical, Floating) -->
+                    <!-- Adjusted: 9px - 0.2px = 8.8px -->
+                    <div class="tape-spine bg-gray-900 cassette-texture z-20 rotate-0 translate-y-[8.8px]" style="margin-right: 2px;" onclick="event.stopPropagation(); document.getElementById('about').scrollIntoView({behavior:'smooth'})">
+                        <div class="spine-label writing-vertical bg-black border-l-4 border-netease">
+                            <span class="text-white font-black text-sm tracking-widest uppercase rotate-180">EXPERIENCE</span>
+                        </div>
+                        <div class="tape-face bg-black text-white">
+                            <div class="flex justify-between items-start mb-6">
+                                <span class="font-black text-xl text-netease">TOP HITS</span>
+                                <span class="text-[10px] border border-white/20 px-1">10Y</span>
+                            </div>
+                            <div class="flex-1 flex items-center justify-center gap-4 bg-gray-900 rounded my-2">
+                                <div class="c-reel border-gray-600"></div><div class="c-reel border-gray-600"></div>
+                            </div>
+                            <div class="mt-4">
+                    <h3 class="font-bold text-lg leading-tight text-white">NetEase & Alibaba</h3>
+                    <p class="text-xs text-gray-500 font-mono mt-1">UX Design Lead</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tape 3: 播放器&我的页减负 (8.7° Right, GROUNDED) -->
+                    <!-- Unchanged: 0px -->
+                    <div class="tape-spine bg-orange-800 cassette-texture z-30 rotate-[8.7deg] translate-y-0 shadow-2xl origin-bottom-left" style="margin-right: 52px;" onclick="event.stopPropagation(); openProject('project1')">
+                        <div class="spine-label writing-vertical bg-orange-700 border-l-4 border-orange-400">
+                            <span class="text-orange-100 font-bold text-sm tracking-widest">播放器&我的页减负</span>
+                        </div>
+                        <div class="tape-face bg-orange-600 text-white">
+                            <div class="flex justify-between items-start mb-6">
+                                <span class="font-black text-lg">MINIMALISM</span>
+                                <i class="ph-bold ph-arrows-in-simple text-xl opacity-70"></i>
+                            </div>
+                            <div class="flex-1 flex items-center justify-center gap-4 bg-black/10 rounded">
+                                <div class="c-reel"></div><div class="c-reel"></div>
+                            </div>
+                            <div class="mt-4">
+                                <h3 class="font-bold text-lg leading-tight">主场景减负</h3>
+                                <p class="text-xs opacity-80 font-mono mt-1">UX Renovation</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tape 4: 样式美学 (Vertical, Floating) -->
+                    <!-- Adjusted: 8.5px - 0.2px = 8.3px -->
+                    <div class="tape-spine bg-purple-900 cassette-texture z-20 rotate-0 translate-y-[8.3px]" style="margin-right: 2px;" onclick="event.stopPropagation(); openProject('project2')">
+                        <div class="spine-label writing-vertical bg-purple-800 border-l-4 border-purple-400">
+                            <span class="text-purple-100 font-bold text-sm tracking-widest">样式美学</span>
+                        </div>
+                        <div class="tape-face bg-gradient-to-br from-purple-700 to-indigo-900 text-white">
+                            <div class="flex justify-between items-start mb-6">
+                                <span class="font-black text-lg">AESTHETICS</span>
+                                <i class="ph-fill ph-sparkle text-yellow-300 animate-pulse"></i>
+                            </div>
+                            <div class="flex-1 flex items-center justify-center gap-4 border border-white/10 rounded relative overflow-hidden">
+                                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse"></div>
+                                <div class="c-reel border-purple-300"></div><div class="c-reel border-purple-300"></div>
+                            </div>
+                            <div class="mt-4">
+                                <h3 class="font-bold text-lg leading-tight">样式美学大革新</h3>
+                                <p class="text-xs opacity-80 font-mono mt-1">Visual System</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tape 5: 双螺旋 (5.5° Right, Floating) -->
+                    <!-- Adjusted: 2px + 0.2px = 2.2px -->
+                    <div class="tape-spine bg-blue-900 cassette-texture z-30 rotate-[5.5deg] translate-y-[2.2px] origin-bottom-left" style="margin-right: 33px;" onclick="event.stopPropagation(); openProject('project3')">
+                        <div class="spine-label writing-vertical bg-blue-800 border-l-4 border-cyan-400">
+                            <span class="text-cyan-100 font-bold text-sm tracking-widest">双螺旋</span>
+                        </div>
+                        <div class="tape-face bg-blue-900 text-white">
+                            <div class="flex justify-between items-start mb-6">
+                                <span class="font-black text-lg text-cyan-300">SYSTEM</span>
+                                <i class="ph-bold ph-dna text-xl text-cyan-400"></i>
+                            </div>
+                            <div class="flex-1 flex items-center justify-center gap-4 bg-black/20 border border-cyan-500/30 rounded">
+                                <div class="c-reel border-cyan-400"></div><div class="c-reel border-cyan-400"></div>
+                            </div>
+                            <div class="mt-4">
+                                <h3 class="font-bold text-lg leading-tight text-cyan-300">双螺旋提效计划</h3>
+                                <p class="text-xs opacity-80 font-mono mt-1">AI & Tools</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tape 6: 硬核养成 (Vertical, Floating) -->
+                    <!-- Adjusted: 8.5px - 0.2px = 8.3px -->
+                    <div class="tape-spine bg-emerald-900 cassette-texture z-20 rotate-0 translate-y-[8.3px]" onclick="event.stopPropagation(); openProject('project4')">
+                        <div class="spine-label writing-vertical bg-emerald-800 border-l-4 border-emerald-400">
+                            <span class="text-emerald-100 font-bold text-sm tracking-widest">硬核养成</span>
+                        </div>
+                        <div class="tape-face bg-emerald-800 text-white">
+                            <div class="flex justify-between items-start mb-6">
+                                <span class="font-black text-lg text-emerald-300">GROWTH</span>
+                                <i class="ph-bold ph-plant text-xl text-emerald-400"></i>
+                            </div>
+                            <div class="flex-1 flex items-center justify-center gap-4 bg-black/10 rounded">
+                                <div class="c-reel border-emerald-200"></div><div class="c-reel border-emerald-200"></div>
+                            </div>
+                            <div class="mt-4">
+                                <h3 class="font-bold text-lg leading-tight text-emerald-200">硬核养成计划</h3>
+                                <p class="text-xs opacity-80 font-mono mt-1">Leadership</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Shelf Base -->
+                <div class="w-full max-w-[640px] h-4 bg-[#1a1a1a] border-t border-gray-700 rounded-b shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center justify-center relative z-0">
+                    <span class="text-[8px] text-gray-600 font-mono tracking-[0.3em] uppercase">SIMO COLLECTION 2025</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Rest of content aligned with same grid -->
+    <main id="works" class="relative z-10 max-w-7xl mx-auto px-6 py-24 w-full">
+        <div class="flex items-end justify-between mb-12 border-b border-white/10 pb-4">
+            <h2 class="text-4xl font-bold tracking-tighter">SELECTED TRACKS</h2>
+            <span class="font-mono text-gray-500 text-xs hidden md:block">TOTAL DURATION: 10 YEARS · 2016 — 2025</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Track 01: 播放器减负计划 -->
+            <article class="group relative cursor-pointer" onclick="openProject('project1')">
+                <div class="relative z-10 aspect-[4/3] bg-[#0A0A10] overflow-hidden border border-white/10 shadow-2xl transition-transform duration-300 group-hover:-translate-y-2">
+                    <img src="images/page_04.png" alt="播放器减负计划" class="absolute inset-[5%] w-[90%] h-[90%] object-contain rounded-md opacity-90 group-hover:opacity-100 group-hover:scale-[1.05] transition-all duration-500">
+                    <div class="absolute top-4 right-4 bg-netease text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider">SIDE A · Track 01</div>
+                    <div class="absolute bottom-4 left-5 right-5">
+                        <div class="text-[10px] font-mono text-netease/80">2023.5 — 2023.11 · 播放页 & 我的页 10.0</div>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-between items-start">
+                    <div>
+                        <h3 class="text-2xl font-bold mb-1 group-hover:text-netease transition-colors">播放器减负计划</h3>
+                        <p class="text-gray-400 font-mono text-xs">播放页 & 我的页 10.0 大改版 · UX Renovation</p>
+                    </div>
+                    <button class="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center hover:bg-white hover:text-black transition-colors"><i class="ph-fill ph-play"></i></button>
+                </div>
+            </article>
+
+            <!-- Track 02: 播放器样式美学 -->
+            <article class="group relative cursor-pointer" onclick="openProject('project2')">
+                <div class="relative z-10 aspect-[4/3] bg-[#0A0A10] overflow-hidden border border-white/10 shadow-2xl transition-transform duration-300 group-hover:-translate-y-2">
+                    <img src="images/page_25.png" alt="播放器样式美学" class="absolute inset-[5%] w-[90%] h-[90%] object-contain rounded-md opacity-90 group-hover:opacity-100 group-hover:scale-[1.05] transition-all duration-500">
+                    <div class="absolute top-4 right-4 bg-purple-600 text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider">SIDE A · Track 02</div>
+                    <div class="absolute bottom-4 left-5 right-5">
+                        <div class="text-[10px] font-mono text-purple-400/80">2023 — 2024 · 661.8万新召用户 · 30+ Styles</div>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-between items-start">
+                    <div>
+                        <h3 class="text-2xl font-bold mb-1 group-hover:text-purple-400 transition-colors">播放器样式美学</h3>
+                        <p class="text-gray-400 font-mono text-xs">Visual System / Motion Design / 30+ Styles</p>
+                    </div>
+                    <button class="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center hover:bg-white hover:text-black transition-colors"><i class="ph-fill ph-play"></i></button>
+                </div>
+            </article>
+
+            <!-- Track 03: 双螺旋提效计划 -->
+            <article class="group relative cursor-pointer" onclick="openProject('project3')">
+                <div class="relative z-10 aspect-[4/3] bg-[#0A0A10] overflow-hidden border border-white/10 shadow-2xl transition-transform duration-300 group-hover:-translate-y-2">
+                    <img src="images/page_40.png" alt="双螺旋提效计划" class="absolute inset-[5%] w-[90%] h-[90%] object-contain rounded-md opacity-90 group-hover:opacity-100 group-hover:scale-[1.05] transition-all duration-500">
+                    <div class="absolute top-4 right-4 bg-cyan-600 text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider">SIDE B · Track 03</div>
+                    <div class="absolute bottom-4 left-5 right-5">
+                        <div class="text-[10px] font-mono text-cyan-400/80">Design System & AI Tools · 30% 人力提效</div>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-between items-start">
+                    <div>
+                        <h3 class="text-2xl font-bold mb-1 group-hover:text-cyan-400 transition-colors">双螺旋提效计划</h3>
+                        <p class="text-gray-400 font-mono text-xs">Design Infra / Code↔Design / 30% 人力提效</p>
+                    </div>
+                    <button class="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center hover:bg-white hover:text-black transition-colors"><i class="ph-fill ph-play"></i></button>
+                </div>
+            </article>
+
+            <!-- Track 04: 硬核养成计划 -->
+            <article class="group relative cursor-pointer" onclick="openProject('project4')">
+                <div class="relative z-10 aspect-[4/3] bg-[#0A0A10] overflow-hidden border border-white/10 shadow-2xl transition-transform duration-300 group-hover:-translate-y-2">
+                    <img src="images/page_51.png" alt="硬核养成计划" class="absolute inset-[5%] w-[90%] h-[90%] object-contain rounded-md opacity-90 group-hover:opacity-100 group-hover:scale-[1.05] transition-all duration-500">
+                    <div class="absolute top-4 right-4 bg-green-600 text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider">SIDE B · Track 04</div>
+                    <div class="absolute bottom-4 left-5 right-5">
+                        <div class="text-[10px] font-mono text-green-400/80">Team Building & Design Leadership</div>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-between items-start">
+                    <div>
+                        <h3 class="text-2xl font-bold mb-1 group-hover:text-green-400 transition-colors">硬核养成计划</h3>
+                        <p class="text-gray-400 font-mono text-xs">Team Growth / Design Leadership</p>
+                    </div>
+                    <button class="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center hover:bg-white hover:text-black transition-colors"><i class="ph-fill ph-play"></i></button>
+                </div>
+            </article>
+        </div>
+    </main>
+
+    <section id="ai-lab" class="py-24 px-6 border-t border-white/5 bg-[#080808] hidden">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex flex-col md:flex-row gap-12 items-center">
+                <div class="flex-1 space-y-6">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 border border-netease text-netease text-[10px] font-mono tracking-widest uppercase rounded-full">
+                        <i class="ph-bold ph-sparkle"></i> Powered by Gemini
+                    </div>
+                    <h2 class="text-4xl md:text-5xl font-black tracking-tighter">
+                        CREATE YOUR<br>
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-netease to-purple-500">SIDE-B TRACK</span>
+                    </h2>
+                    <p class="text-gray-400 text-lg">
+                        Tell us your vibe, hobby, or profession. <br>
+                        Our AI DJ will mix a unique cyberpunk track title and liner notes just for you.
+                    </p>
+                    <div class="flex flex-col gap-4 max-w-md" id="ai-input-area">
+                        <div class="relative">
+                            <input type="text" id="user-input" placeholder="e.g. Cat Lover, Fullstack Dev, Night Runner..." 
+                                class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-4 focus:outline-none focus:border-netease focus:ring-1 focus:ring-netease transition-colors font-mono text-sm placeholder-gray-600 text-white">
+                            <i class="ph-bold ph-keyboard absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                        </div>
+                        <button onclick="generateTrack()" id="generate-btn" class="bg-white text-black font-bold py-4 px-6 rounded-lg hover:bg-netease hover:text-white transition-all flex items-center justify-center gap-2 group">
+                            <span>GENERATE TRACK</span>
+                            <i class="ph-bold ph-record group-hover:animate-pulse text-netease group-hover:text-white"></i>
+                        </button>
+                        <div id="error-msg" class="text-red-500 text-xs font-mono hidden"></div>
+                        <p class="text-[10px] text-gray-600 font-mono">⚡ Powered by Gemini API · 需配置 API Key 方可使用</p>
+                    </div>
+                </div>
+                <div class="flex-1 w-full flex justify-center perspective-1000">
+                    <div id="track-card" class="relative w-full max-w-[400px] aspect-[4/3] bg-neutral-900 rounded-lg border border-white/10 shadow-2xl overflow-hidden transition-all duration-700 opacity-50 grayscale group">
+                        <div id="loading-overlay" class="absolute inset-0 bg-black/80 z-20 hidden flex-col items-center justify-center gap-4">
+                            <div class="loader"></div>
+                            <span class="font-mono text-xs text-netease animate-pulse">MIXING TRACK...</span>
+                        </div>
+                        <div class="absolute inset-0 bg-gradient-to-br from-gray-800 to-black transition-colors duration-1000" id="card-bg">
+                            <div class="absolute top-4 left-4 flex gap-2"><div class="w-2 h-2 rounded-full bg-white/20"></div><div class="w-2 h-2 rounded-full bg-white/20"></div></div>
+                            <div class="absolute bottom-4 right-4 font-mono text-[10px] text-white/30" id="card-id">ID: GEN-000</div>
+                            <div class="absolute bottom-0 left-0 w-full p-8 bg-gradient-to-t from-black via-black/80 to-transparent">
+                                <h3 class="text-3xl font-black leading-none mb-2 text-white" id="track-title">WAITING FOR INPUT</h3>
+                                <p class="text-xs font-mono text-gray-400 leading-relaxed border-l-2 border-netease pl-3" id="track-desc">Input your prompt to generate your unique cyber identity.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 底部关于 -->
+    <section id="about" class="py-24 px-6 border-t border-white/5 bg-[#080810]">
+        <div class="max-w-5xl mx-auto">
+            <div class="flex flex-col md:flex-row gap-12">
+                <div class="flex-1">
+                    <h2 class="text-sm font-mono text-netease tracking-widest mb-6">ABOUT THE ARTIST</h2>
+                    <p class="text-xl md:text-2xl leading-relaxed font-light text-gray-200">
+                        <span class="text-white font-bold">10年</span> 互联网产品体验设计经验。<br>
+                        兼具<span class="border-b border-netease pb-0.5">"审美感性+工具理性"</span>的双重特质。<br>
+                        拥有亿级流量C端产品重构经验与生态建设的成功案例。<br>
+                    </p>
+                    
+                    <!-- Skills -->
+                    <div class="mt-8">
+                        <h3 class="text-xs font-mono text-gray-500 tracking-widest mb-3">SKILLS</h3>
+                        <div class="flex gap-2 flex-wrap">
+                            <span class="px-3 py-1 rounded-full border border-white/10 text-xs text-gray-400">User Research</span>
+                            <span class="px-3 py-1 rounded-full border border-white/10 text-xs text-gray-400">Interaction Design</span>
+                            <span class="px-3 py-1 rounded-full border border-white/10 text-xs text-gray-400">UI Design</span>
+                            <span class="px-3 py-1 rounded-full border border-white/10 text-xs text-gray-400">3D/UI Motion</span>
+                            <span class="px-3 py-1 rounded-full border border-white/10 text-xs text-gray-400">Prototyping</span>
+                            <span class="px-3 py-1 rounded-full border border-white/10 text-xs text-gray-400">A/B Testing</span>
+                            <span class="px-3 py-1 rounded-full border border-white/10 text-xs text-gray-400">Design Systems</span>
+                            <span class="px-3 py-1 rounded-full border border-white/10 text-xs text-gray-400">Usability Testing</span>
+                        </div>
+                    </div>
+
+                    <!-- Tools -->
+                    <div class="mt-6">
+                        <h3 class="text-xs font-mono text-gray-500 tracking-widest mb-3">TOOLBOX</h3>
+                        <div class="flex gap-2 flex-wrap">
+                            <span class="px-3 py-1 rounded-full border border-netease/30 text-xs text-netease/80">#Figma</span>
+                            <span class="px-3 py-1 rounded-full border border-netease/30 text-xs text-netease/80">#Mastergo</span>
+                            <span class="px-3 py-1 rounded-full border border-netease/30 text-xs text-netease/80">#Sketch</span>
+                            <span class="px-3 py-1 rounded-full border border-netease/30 text-xs text-netease/80">#Principle</span>
+                            <span class="px-3 py-1 rounded-full border border-netease/30 text-xs text-netease/80">#ProtoPie</span>
+                            <span class="px-3 py-1 rounded-full border border-netease/30 text-xs text-netease/80">#After Effects</span>
+                            <span class="px-3 py-1 rounded-full border border-netease/30 text-xs text-netease/80">#Cinema 4D</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="w-full md:w-1/3 space-y-6">
+                    <!-- Info Card -->
+                    <div class="glass p-6 rounded-xl space-y-4">
+                        <div class="flex justify-between items-center text-sm border-b border-white/10 pb-2">
+                            <span class="text-gray-400">Name</span>
+                            <span>徐晓强 (Simo)</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm border-b border-white/10 pb-2">
+                            <span class="text-gray-400">Role</span>
+                            <span>UX Design Lead</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm border-b border-white/10 pb-2">
+                            <span class="text-gray-400">Company</span>
+                            <span class="text-netease">网易云音乐</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm border-b border-white/10 pb-2">
+                            <span class="text-gray-400">MBTI</span>
+                            <span>ENTJ</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-400">Contact</span>
+                            <span>18268210923</span>
+                        </div>
+                    </div>
+
+                    <!-- Experience Timeline -->
+                    <div class="glass p-6 rounded-xl">
+                        <h3 class="text-xs font-mono text-gray-500 tracking-widest mb-4">EXPERIENCE</h3>
+                        <div class="space-y-4">
+                            <div class="border-l-2 border-netease pl-4">
+                                <div class="text-sm font-bold">网易云音乐</div>
+                                <div class="text-xs text-gray-400 font-mono">2020.12 — Now</div>
+                                <div class="text-xs text-gray-500 mt-1">平台基础线设计负责人</div>
+                            </div>
+                            <div class="border-l-2 border-purple-500 pl-4">
+                                <div class="text-sm font-bold">阿里巴巴</div>
+                                <div class="text-xs text-gray-400 font-mono">2018.05 — 2020.12</div>
+                                <div class="text-xs text-gray-500 mt-1">体验设计师 · 1688会员体系</div>
+                            </div>
+                            <div class="border-l-2 border-gray-600 pl-4">
+                                <div class="text-sm font-bold">网易味央</div>
+                                <div class="text-xs text-gray-400 font-mono">2016.05 — 2018.04</div>
+                                <div class="text-xs text-gray-500 mt-1">视觉设计师</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact 区域 -->
+    <section id="contact" class="py-24 px-6 border-t border-white/5 bg-[#0A0A10]">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-sm font-mono text-netease tracking-widest mb-6">CONTACT · 联系方式</h2>
+            <p class="text-3xl md:text-4xl font-bold tracking-tight mb-2">心之所向，素履以往</p>
+            <p class="text-gray-500 mb-12 font-mono text-sm">Let's create something amazing together.</p>
+            
+            <div class="flex flex-wrap gap-4 justify-center mb-12">
+                <a href="tel:18268210923" class="flex items-center gap-3 px-6 py-4 bg-white/5 border border-white/10 rounded-xl hover:border-netease hover:bg-netease/5 transition-all group">
+                    <i class="ph-bold ph-phone text-xl text-gray-400 group-hover:text-netease transition-colors"></i>
+                    <div class="text-left">
+                        <div class="text-[10px] text-gray-500 font-mono uppercase">Phone</div>
+                        <div class="text-sm font-semibold">182-6821-0923</div>
+                    </div>
+                </a>
+                <a href="mailto:simooooxu@qq.com" class="flex items-center gap-3 px-6 py-4 bg-white/5 border border-white/10 rounded-xl hover:border-netease hover:bg-netease/5 transition-all group">
+                    <i class="ph-bold ph-envelope text-xl text-gray-400 group-hover:text-netease transition-colors"></i>
+                    <div class="text-left">
+                        <div class="text-[10px] text-gray-500 font-mono uppercase">Email</div>
+                        <div class="text-sm font-semibold">simooooxu@qq.com</div>
+                    </div>
+                </a>
+            </div>
+            
+            <p class="text-gray-600 font-mono text-xs">© 2025 Xu Xiaoqiang (Simo). Portfolio Cassette.</p>
+        </div>
+    </section>
+
+    <!-- 底部间距，避免播放条遮挡 -->
+    <div class="h-20"></div>
+
+    <!-- 底部播放条 (App Shell) -->
+    <footer class="fixed bottom-0 w-full z-50 glass border-t-0 border-t-white/10 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <!-- 模拟专辑小图 -->
+                <div class="w-10 h-10 rounded overflow-hidden animate-spin-slow">
+                    <img src="images/胶盘.png" alt="胶盘" class="w-full h-full object-cover">
+                </div>
+                <div class="hidden sm:block">
+                    <div class="text-sm font-bold">Portfolio Cassette 2025</div>
+                    <div class="text-xs text-gray-400 font-mono">Xu Xiaoqiang</div>
+                </div>
+            </div>
+
+            <!-- 控制按钮 -->
+            <div class="flex items-center gap-6 text-xl">
+                <button class="text-gray-400 hover:text-white transition"><i class="ph-fill ph-skip-back"></i></button>
+                <button class="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                    <i class="ph-fill ph-play ml-0.5"></i>
+                </button>
+                <button class="text-gray-400 hover:text-white transition"><i class="ph-fill ph-skip-forward"></i></button>
+            </div>
+
+            <!-- 音量/功能 -->
+            <div class="hidden sm:flex items-center gap-4 text-gray-400">
+                <span class="text-xs font-mono">00:25 / 20:25</span>
+                <i class="ph-bold ph-speaker-high hover:text-white cursor-pointer"></i>
+                <i class="ph-bold ph-list hover:text-white cursor-pointer"></i>
+            </div>
+        </div>
+        
+        <!-- 进度条 — 随页面滚动联动 -->
+        <div class="absolute top-0 left-0 w-full h-[2px] bg-white/10">
+            <div id="scroll-progress" class="w-[0%] h-full bg-netease shadow-[0_0_10px_#E60026] transition-[width] duration-150"></div>
+        </div>
+    </footer>
+
+    <!-- ====== PROJECT MODALS ====== -->
+    <!-- Project 1: 播放器减负计划 -->
+    <div class="project-modal" id="project1">
+        <div class="modal-backdrop" onclick="closeProject('project1')"></div>
+        <button class="modal-close" onclick="closeProject('project1')"><i class="ph-bold ph-x"></i></button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="text-netease font-mono text-xs tracking-widest mb-4">SIDE A · TRACK 01</div>
+                <h2>播放器减负计划</h2>
+                <p class="text-gray-400 text-lg mt-2">「轻」装上阵 ×「重」塑掌控 — 播放页 & 我的页 10.0 大改版</p>
+                <div class="meta-row mt-4">
+                    <span><i class="ph-bold ph-user"></i> 主设 · 设计提案/项目推进</span>
+                    <span><i class="ph-bold ph-calendar"></i> 2023.5 — 2023.11</span>
+                    <span><i class="ph-bold ph-chart-line-up"></i> 人均播放时长&大盘留存正向</span>
+                </div>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-card"><div class="num">+0.2min</div><div class="label">人均播放时长（播放页）</div></div>
+                <div class="metric-card"><div class="num">+5.8%</div><div class="label">互动·红心数（播放页）</div></div>
+                <div class="metric-card"><div class="num">+18.4s</div><div class="label">前端听歌时长（我的页）</div></div>
+                <div class="metric-card"><div class="num">+0.076pt</div><div class="label">次留数据（我的页）</div></div>
+            </div>
+            <div class="page-gallery">
+                <!-- 播放页 10.0 -->
+                <div class="text-center py-6">
+                    <span class="text-xs font-mono text-netease tracking-widest uppercase px-4 py-2 border border-netease/20 rounded-full">Part 01 · 播放页 10.0 大改版</span>
+                </div>
+                <img src="images/page_04.png" alt="章节标题" loading="lazy">
+                <img src="images/page_05.png" alt="播放页10.0" loading="lazy">
+                <img src="images/page_06.png" alt="项目目标" loading="lazy">
+                <img src="images/page_07.png" alt="改版对比" loading="lazy">
+                <img src="images/page_08.png" alt="设计详情" loading="lazy">
+                <img src="images/page_09.png" alt="设计详情" loading="lazy">
+                <img src="images/page_10.png" alt="如何更年轻" loading="lazy">
+                <img src="images/page_11.png" alt="设计详情" loading="lazy">
+                <img src="images/page_12.png" alt="设计详情" loading="lazy">
+                <img src="images/page_13.png" alt="设计详情" loading="lazy">
+                <img src="images/page_14.png" alt="设计详情" loading="lazy">
+                <img src="images/page_15.png" alt="收获与思考" loading="lazy">
+                <!-- 我的页 10.0 -->
+                <div class="text-center py-6 mt-8">
+                    <span class="text-xs font-mono text-netease tracking-widest uppercase px-4 py-2 border border-netease/20 rounded-full">Part 02 · 我的页 10.0 大改版</span>
+                </div>
+                <img src="images/page_16.png" alt="我的页10.0" loading="lazy">
+                <img src="images/page_17.png" alt="我的页详情" loading="lazy">
+                <img src="images/page_18.png" alt="我的页详情" loading="lazy">
+                <img src="images/page_19.png" alt="我的页详情" loading="lazy">
+                <img src="images/page_20.png" alt="如何更可控" loading="lazy">
+                <img src="images/page_21.png" alt="我的页详情" loading="lazy">
+                <img src="images/page_22.png" alt="我的页详情" loading="lazy">
+                <img src="images/page_23.png" alt="我的页详情" loading="lazy">
+                <img src="images/page_24.png" alt="我的页收获" loading="lazy">
+            </div>
+        </div>
+    </div>
+
+    <!-- Project 2: 播放器样式美学 -->
+    <div class="project-modal" id="project2">
+        <div class="modal-backdrop" onclick="closeProject('project2')"></div>
+        <button class="modal-close" onclick="closeProject('project2')"><i class="ph-bold ph-x"></i></button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="text-purple-400 font-mono text-xs tracking-widest mb-4">SIDE A · TRACK 02</div>
+                <h2>播放器样式美学</h2>
+                <p class="text-gray-400 text-lg mt-2">年轻人不将"旧" — 播放器样式美学大革新</p>
+                <div class="meta-row mt-4">
+                    <span><i class="ph-bold ph-user"></i> 主设 · 创意策划/视觉设计</span>
+                    <span><i class="ph-bold ph-calendar"></i> 2023 — 2024</span>
+                    <span><i class="ph-bold ph-sparkle"></i> 30+ 原创样式</span>
+                </div>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-card"><div class="num">661.8万</div><div class="label">新召用户</div></div>
+                <div class="metric-card"><div class="num">18.12%</div><div class="label">功能渗透</div></div>
+                <div class="metric-card"><div class="num">350W+</div><div class="label">单日峰值</div></div>
+                <div class="metric-card"><div class="num">30+</div><div class="label">原创样式</div></div>
+            </div>
+            <div class="page-gallery">
+                <img src="images/page_25.png" alt="章节标题" loading="lazy">
+                <img src="images/page_26.png" alt="项目介绍" loading="lazy">
+                <img src="images/page_27.png" alt="设计详情" loading="lazy">
+                <img src="images/page_28.png" alt="设计详情" loading="lazy">
+                <img src="images/page_29.png" alt="设计详情" loading="lazy">
+                <img src="images/page_30.png" alt="DIY播放器" loading="lazy">
+                <img src="images/page_31.png" alt="设计详情" loading="lazy">
+                <img src="images/page_32.png" alt="设计详情" loading="lazy">
+                <img src="images/page_33.png" alt="设计详情" loading="lazy">
+                <img src="images/page_34.png" alt="设计详情" loading="lazy">
+                <img src="images/page_35.png" alt="华彩蜕变" loading="lazy">
+                <img src="images/page_36.png" alt="设计详情" loading="lazy">
+                <img src="images/page_37.png" alt="设计详情" loading="lazy">
+                <img src="images/page_38.png" alt="设计详情" loading="lazy">
+                <img src="images/page_39.png" alt="收获与思考" loading="lazy">
+            </div>
+        </div>
+    </div>
+
+    <!-- Project 3: 双螺旋提效计划 -->
+    <div class="project-modal" id="project3">
+        <div class="modal-backdrop" onclick="closeProject('project3')"></div>
+        <button class="modal-close" onclick="closeProject('project3')"><i class="ph-bold ph-x"></i></button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="text-cyan-400 font-mono text-xs tracking-widest mb-4">SIDE B · TRACK 03</div>
+                <h2>双螺旋提效计划</h2>
+                <p class="text-gray-400 text-lg mt-2">中台筑基 | AI 造浪 — Design System & AI Tools</p>
+                <div class="meta-row mt-4">
+                    <span><i class="ph-bold ph-user"></i> 负责人 · 中台架构/工具研发</span>
+                    <span><i class="ph-bold ph-code"></i> Code↔Design 工程化</span>
+                    <span><i class="ph-bold ph-robot"></i> AI工具孵化</span>
+                </div>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-card"><div class="num">30%</div><div class="label">人力提效</div></div>
+                <div class="metric-card"><div class="num">63+</div><div class="label">通用组件</div></div>
+                <div class="metric-card"><div class="num">100+</div><div class="label">设计规范</div></div>
+                <div class="metric-card"><div class="num">8.7</div><div class="label">SUS易用性</div></div>
+            </div>
+            <div class="page-gallery">
+                <img src="images/page_40.png" alt="章节标题" loading="lazy">
+                <img src="images/page_41.png" alt="项目介绍" loading="lazy">
+                <img src="images/page_42.png" alt="设计工程化" loading="lazy">
+                <img src="images/page_43.png" alt="设计详情" loading="lazy">
+                <img src="images/page_44.png" alt="设计详情" loading="lazy">
+                <img src="images/page_45.png" alt="设计详情" loading="lazy">
+                <img src="images/page_46.png" alt="设计详情" loading="lazy">
+                <img src="images/page_47.png" alt="设计详情" loading="lazy">
+                <img src="images/page_48.png" alt="设计详情" loading="lazy">
+                <img src="images/page_49.png" alt="设计详情" loading="lazy">
+                <img src="images/page_50.png" alt="项目影响力" loading="lazy">
+            </div>
+        </div>
+    </div>
+
+    <!-- Project 4: 硬核养成计划 -->
+    <div class="project-modal" id="project4">
+        <div class="modal-backdrop" onclick="closeProject('project4')"></div>
+        <button class="modal-close" onclick="closeProject('project4')"><i class="ph-bold ph-x"></i></button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="text-green-400 font-mono text-xs tracking-widest mb-4">SIDE B · TRACK 04</div>
+                <h2>硬核养成计划</h2>
+                <p class="text-gray-400 text-lg mt-2">结构力 · 节奏力 · 成长力 — Design Leadership</p>
+                <div class="meta-row mt-4">
+                    <span><i class="ph-bold ph-users-three"></i> 团队管理</span>
+                    <span><i class="ph-bold ph-trophy"></i> 设计负责人</span>
+                    <span><i class="ph-bold ph-graph"></i> 体系化建设</span>
+                </div>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-card"><div class="num">6人</div><div class="label">团队规模</div></div>
+                <div class="metric-card"><div class="num">2人</div><div class="label">外包/实习转正</div></div>
+                <div class="metric-card"><div class="num">TOP2</div><div class="label">集团十佳课程</div></div>
+                <div class="metric-card"><div class="num">3项</div><div class="label">集团级获奖</div></div>
+            </div>
+            <div class="page-gallery">
+                <img src="images/page_51.png" alt="章节标题" loading="lazy">
+                <img src="images/page_52.png" alt="管理详情" loading="lazy">
+                <img src="images/page_53.png" alt="管理详情" loading="lazy">
+                <img src="images/page_54.png" alt="管理能力" loading="lazy">
+                <img src="images/page_55.png" alt="管理详情" loading="lazy">
+                <img src="images/page_56.png" alt="管理详情" loading="lazy">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // PROJECT MODAL SYSTEM
+        // ============================================
+        const projectIds = ['project1', 'project2', 'project3', 'project4'];
+        let currentProjectIndex = -1;
+
+        function openProject(id) {
+            const modal = document.getElementById(id);
+            if (!modal) return;
+            currentProjectIndex = projectIds.indexOf(id);
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            requestAnimationFrame(() => modal.classList.add('active'));
+            const content = modal.querySelector('.modal-content');
+            if (content) content.scrollTop = 0;
+            // Update URL hash
+            history.replaceState(null, '', '#' + id);
+        }
+
+        function closeProject(id) {
+            const modal = document.getElementById(id);
+            if (!modal) return;
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+            currentProjectIndex = -1;
+            setTimeout(() => { modal.style.display = 'none'; }, 400);
+            history.replaceState(null, '', window.location.pathname);
+        }
+
+        // Keyboard: ESC to close, Arrow keys to navigate projects
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.project-modal.active').forEach(m => closeProject(m.id));
+            }
+            if (currentProjectIndex >= 0) {
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const nextIdx = (currentProjectIndex + 1) % projectIds.length;
+                    closeProject(projectIds[currentProjectIndex]);
+                    setTimeout(() => openProject(projectIds[nextIdx]), 450);
+                }
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    const prevIdx = (currentProjectIndex - 1 + projectIds.length) % projectIds.length;
+                    closeProject(projectIds[currentProjectIndex]);
+                    setTimeout(() => openProject(projectIds[prevIdx]), 450);
+                }
+            }
+        });
+
+        // Open project from URL hash on load
+        window.addEventListener('DOMContentLoaded', () => {
+            const hash = window.location.hash.replace('#', '');
+            if (projectIds.includes(hash)) {
+                setTimeout(() => openProject(hash), 500);
+            }
+        });
+
+        // ============================================
+        // AI LAB — Gemini Integration (with fallback)
+        // ============================================
+        async function generateTrack() {
+            const input = document.getElementById('user-input').value;
+            const btn = document.getElementById('generate-btn');
+            const loader = document.getElementById('loading-overlay');
+            const errorMsg = document.getElementById('error-msg');
+            const card = document.getElementById('track-card');
+            
+            if (!input.trim()) return;
+
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            loader.classList.remove('hidden');
+            loader.classList.add('flex');
+            errorMsg.classList.add('hidden');
+            
+            const apiKey = ""; // Set your Gemini API Key here
+
+            if (!apiKey) {
+                // Fallback: generate locally without API
+                const fallbackTitles = ["Neon Weaver", "Pixel Soul", "Void Walker", "Echo Drift", "Chrome Heart", "Flux State", "Data Bloom", "Grid Runner"];
+                const fallbackDescs = [
+                    "Born in the intersection of light and shadow. The digital pulse runs through every pixel of their existence.",
+                    "A wanderer of infinite loops, crafting meaning from the noise of the cyberverse.",
+                    "They speak the language of gradients and breakpoints. Reality bends to their cursor."
+                ];
+                const colors = ["#E60026", "#8B5CF6", "#06B6D4", "#22C55E", "#F59E0B", "#EC4899"];
+                
+                await new Promise(r => setTimeout(r, 1500)); // Simulate loading
+                
+                document.getElementById('track-title').innerText = fallbackTitles[Math.floor(Math.random() * fallbackTitles.length)];
+                document.getElementById('track-desc').innerText = fallbackDescs[Math.floor(Math.random() * fallbackDescs.length)];
+                document.getElementById('card-id').innerText = `ID: ${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+                
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                document.getElementById('card-bg').style.background = `linear-gradient(to bottom right, #111, ${color}aa)`;
+                card.classList.remove('opacity-50', 'grayscale');
+                card.classList.add('scale-105');
+                setTimeout(() => card.classList.remove('scale-105'), 300);
+                
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                loader.classList.add('hidden');
+                loader.classList.remove('flex');
+                return;
+            }
+
+            try {
+                const prompt = `You are a futuristic Cyberpunk DJ. The user's persona: "${input}". Generate JSON with: "title" (2-3 word track title), "description" (2-sentence liner note), "color" (hex code), "icon" (Phosphor icon class). Return ONLY raw JSON.`;
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+                if (!response.ok) throw new Error('API error');
+                const data = await response.json();
+                const result = JSON.parse(data.candidates[0].content.parts[0].text);
+
+                document.getElementById('track-title').innerText = result.title;
+                document.getElementById('track-desc').innerText = result.description;
+                document.getElementById('card-id').innerText = `ID: ${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+                document.getElementById('card-bg').style.background = `linear-gradient(to bottom right, #111, ${result.color}aa)`;
+                card.classList.remove('opacity-50', 'grayscale');
+                card.classList.add('scale-105');
+                setTimeout(() => card.classList.remove('scale-105'), 300);
+            } catch (error) {
+                errorMsg.innerText = "Connection lost to the Cyberverse. Falling back to local generation...";
+                errorMsg.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                loader.classList.add('hidden');
+                loader.classList.remove('flex');
+            }
+        }
+
+        document.getElementById('user-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') generateTrack();
+        });
+
+        // ============================================
+        // SCROLL EFFECTS
+        // ============================================
+        const nav = document.getElementById('top-nav');
+        const progressBar = document.querySelector('.progress-fill');
+        const sections = document.querySelectorAll('section[id], main[id]');
+        const navLinks = document.querySelectorAll('[data-nav]');
+
+        window.addEventListener('scroll', () => {
+            const scrollY = window.scrollY;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollPct = Math.min(scrollY / docHeight * 100, 100);
+
+            // 1. Nav glass effect
+            if (scrollY > 50) {
+                nav.classList.add('glass', 'bg-black/50', 'backdrop-blur-xl', 'border-white/10');
+                nav.classList.remove('mix-blend-difference', 'py-4', 'border-transparent');
+                nav.classList.add('py-3');
+            } else {
+                nav.classList.remove('glass', 'bg-black/50', 'backdrop-blur-xl', 'border-white/10', 'py-3');
+                nav.classList.add('mix-blend-difference', 'py-4', 'border-transparent');
+            }
+
+            // 2. Progress bar in footer
+            const fill = document.getElementById('scroll-progress');
+            if (fill) fill.style.width = scrollPct + '%';
+
+            // 3. Active nav link highlight
+            let currentSection = '';
+            sections.forEach(section => {
+                const top = section.offsetTop - 200;
+                if (scrollY >= top) currentSection = section.id;
+            });
+            navLinks.forEach(link => {
+                const href = link.getAttribute('href').replace('#', '');
+                if (href === currentSection) {
+                    link.classList.add('text-white');
+                    link.classList.remove('text-gray-400');
+                } else if (!link.classList.contains('text-netease')) {
+                    link.classList.remove('text-white');
+                    link.classList.add('text-gray-400');
+                }
+            });
+        });
+
+        // ============================================
+        // SCROLL REVEAL ANIMATION
+        // ============================================
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('article, .glass, .metric-card, section > div').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(24px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(el);
+        });
+
+        // Smooth scroll for nav links
+        document.querySelectorAll('a[href^="#"]').forEach(a => {
+            a.addEventListener('click', (e) => {
+                const target = document.querySelector(a.getAttribute('href'));
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
