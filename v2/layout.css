@@ -46,13 +46,11 @@ html { background: var(--paper); }
   backdrop-filter: none;
 }
 body > .viewport-cover {
-  height: calc(var(--viewport-cover-edge) * 2 + var(--visual-viewport-top) + var(--top-overscroll) + 44px);
-  background: linear-gradient(180deg, var(--paper) 0%, var(--paper) calc(100% - 44px), rgba(238, 237, 231, 0) 100%);
-  opacity: var(--viewport-cover-active, 0);
-  transition: opacity 180ms ease;
-}
-body.has-page-scroll > .viewport-cover {
+  top: calc(-1 * max(160px, var(--viewport-cover-edge)));
+  height: calc(max(160px, var(--viewport-cover-edge)) + var(--safe-area-top) + var(--visual-viewport-top) + var(--top-overscroll) + 44px);
+  background: linear-gradient(180deg, var(--paper) 0, var(--paper) calc(100% - 44px), rgba(238, 237, 231, 0) 100%);
   opacity: 1;
+  transition: none;
 }
 .story-dialog > .viewport-cover { z-index: 60; background: var(--story-paper); }
 .image-dialog > .viewport-cover { z-index: 60; background: #e5e6de; }
@@ -73,7 +71,7 @@ body::before {
   height: calc(164px + var(--safe-area-top) + var(--visual-viewport-top));
   z-index: 25;
   pointer-events: none;
-  background: linear-gradient(180deg, var(--paper) 0, var(--paper) calc(112px + var(--safe-area-top) + var(--visual-viewport-top)), color-mix(in srgb, var(--paper) 88%, transparent) calc(128px + var(--safe-area-top) + var(--visual-viewport-top)), transparent 100%);
+  background: linear-gradient(180deg, var(--paper) 0, var(--paper) calc(112px + var(--safe-area-top) + var(--visual-viewport-top)), rgba(238, 237, 231, .88) calc(128px + var(--safe-area-top) + var(--visual-viewport-top)), rgba(238, 237, 231, 0) 100%);
   opacity: 0;
   transition: opacity 180ms ease;
 }

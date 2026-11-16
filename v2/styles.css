@@ -21,7 +21,7 @@
   scrollbar-color: #aaa995 var(--paper);
 }
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 300px; background: radial-gradient(ellipse at 50% 26%,#faf9f0 0,transparent 58%),var(--paper); }
+body { margin: 0; min-width: 300px; background: linear-gradient(180deg, var(--paper) 0, var(--paper) calc(120px + var(--safe-area-top, 0px)), rgba(238,237,231,0) calc(300px + var(--safe-area-top, 0px))), radial-gradient(ellipse at 50% 28%,#faf9f0 0,rgba(250,249,240,0) 58%), var(--paper); }
 body.story-open,body.is-booting { overflow: hidden; }
 body.is-booting #main-content,body.is-booting .site-header,body.is-booting .shelf-index,body.is-booting .site-footer { visibility: hidden; }
 button,input,summary { font: inherit; }

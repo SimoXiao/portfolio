@@ -455,8 +455,7 @@
     const overscroll = Math.max(0, -window.scrollY, story.open ? -story.scrollTop : 0);
     const values = {
       '--visual-viewport-top': `${Math.max(0, viewport?.offsetTop || 0)}px`,
-      '--top-overscroll': `${overscroll}px`,
-      '--viewport-cover-active': overscroll > 0 ? '1' : '0'
+      '--top-overscroll': `${overscroll}px`
     };
     Object.entries(values).forEach(([name, value]) => {
       if (root.style.getPropertyValue(name) !== value) root.style.setProperty(name, value);
