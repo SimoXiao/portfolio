@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#eeede7">
+  <meta name="description" content="徐晓强 Simo 的体验设计作品档案：产品体验、视觉与动效、设计系统和团队建设。">
+  <title>Simo — A Collection of Design</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' rx='17' fill='%23292e2a'/%3E%3Ctext x='40' y='58' font-size='58' font-family='Georgia' text-anchor='middle' fill='%23f5f3ee'%3ES%3C/text%3E%3C/svg%3E">
+  
+  <link rel="stylesheet" href="styles.css?v=20261116-protected-images">
+  <link rel="stylesheet" href="cassette.css?v=20261116-direct-flip-r3">
+  <link rel="stylesheet" href="paper.css?v=20261116-uniform-paper-r7">
+  <link rel="stylesheet" href="paper-print.css?v=20261116-uniform-paper-r7">
+  <link rel="stylesheet" href="layout.css?v=20261116-header-cover">
+  <link rel="stylesheet" href="archive-player.css?v=20261116-reader-tone">
+  <link rel="stylesheet" href="micro-objects.css?v=20261113-natural-colour-r2">
+  <link rel="stylesheet" href="site-details.css?v=20261116-unit-gap">
+  <link rel="stylesheet" href="nav-objects.css?v=20261116-right-grid">
+  <link rel="stylesheet" href="profile-fonts.css?v=20261116-metric-w">
+  <link rel="stylesheet" href="fold-cue.css?v=20261116-quiet-cue">
+  <link rel="stylesheet" href="sound-effects.css?v=20261116-spin-breeze-r2">
+  <script src="auth-config.js" defer></script>
+  <script src="data.js?v=20261116-metric-w" defer></script>
+  <script src="paper-content.js?v=20261116-justified-profile" defer></script>
+  <script src="sound-effects.js?v=20261116-spin-breeze-r2" defer></script>
+  <script src="paper.js?v=20261113-native-profile" defer></script>
+  <script src="cassette-renderer.js?v=20261116-back-metrics-r3" defer></script>
+  <script src="cassette.js?v=20261116-direct-flip-r5" defer></script>
+  <script src="micro-objects.js?v=20261113-nav-icons-r4" defer></script>
+  <script src="app.js?v=20261116-reader-tone-reels" defer></script>
+  <script src="nav-objects.js?v=20261113-nav-icons-r4" defer></script>
+  <script src="archive-player.js?v=20261113-performance-r3" defer></script>
+  <script src="fold-cue.js?v=20261116-foldout-copy" defer></script>
+</head>
+<body class="is-booting">
+  <div class="viewport-cover" aria-hidden="true"></div>
+  <a class="skip-link" href="#collection">跳到作品集</a>
+  <header class="site-header">
+    <div class="brand-lockup"><a class="brand" href="#" data-home aria-label="Simo，返回磁带架">simo<span>®</span></a><p>PORTFOLIO.CAS</p><span class="brand-edition"><svg class="archive-signal" viewBox="0 0 24 18" aria-hidden="true"><rect x="1" y="1" width="22" height="16" rx="2"/><rect x="5" y="5" width="14" height="6" rx="2"/><circle cx="8" cy="8" r="1.1"/><circle cx="16" cy="8" r="1.1"/><path d="M5 17l2-4h10l2 4"/></svg></span></div>
+    <nav class="header-nav" aria-label="主导航">
+      <a href="#collection" data-collection>作品</a>
+      <a href="#about" data-open="about">关于</a>
+      <a href="#contact">联系 <span aria-hidden="true">↗</span></a>
+    </nav>
+  </header>
+  <nav id="shelf-index" class="shelf-index" aria-label="磁带目录"></nav>
+
+  <main id="main-content">
+    <section id="collection" class="collection" aria-labelledby="collection-title">
+      <h1 id="collection-title" class="sr-only">Simo 的设计档案，项目磁带与个人折页</h1>
+      <div class="archive-note" aria-hidden="true"><span class="archive-note-line"></span><span>2016 — Now<br>SELECTED WORKS & RECORDINGS</span></div>
+      <div class="collection-topline"><span id="shelf-counter">01 / 05</span><div class="view-switch" role="group" aria-label="作品浏览方式"><button type="button" data-layout="shelf" aria-pressed="true">磁带架</button><span aria-hidden="true">/</span><button type="button" data-layout="index" aria-pressed="false">作品目录</button></div></div>
+      <div class="tape-stage" id="tape-stage" aria-label="项目磁带与个人折页，从上向下浏览，点击展开内容">
+        <div class="rack" id="rack"></div>
+      </div>
+      <div class="now-playing" aria-label="当前选择的档案">
+        <span class="now-code" id="now-code">SIDE A / TRACK 01</span>
+        <button class="now-title" type="button" id="now-open"><span id="now-title">播放器减负计划</span><span class="now-subtitle" id="now-subtitle">UX Renovation</span><span class="now-open-arrow" aria-hidden="true">↗</span></button>
+        <div class="shelf-controls"><button type="button" id="shelf-prev" aria-label="预览上一盘卡带">←</button><div id="shelf-dots" class="shelf-dots" aria-label="选择卡带"></div><button type="button" id="shelf-next" aria-label="预览下一盘卡带">→</button></div>
+      </div>
+    </section>
+
+    <section id="project-index" class="project-index" aria-labelledby="index-title">
+      <div class="section-heading"><div><p class="eyebrow">SIDE A / SIDE B</p><h2 id="index-title">四段实践，一条设计路径。</h2></div><span class="section-note">PRODUCTS → SYSTEMS → PEOPLE</span></div>
+      <div class="project-list" id="project-list"></div>
+    </section>
+
+    <section id="about-foldout" class="about-foldout" aria-labelledby="about-foldout-title">
+      <h2 id="about-foldout-title" class="sr-only">关于徐晓强，一张个人折页</h2>
+      <div id="paper-scroll-range" class="paper-scroll-range">
+        <span id="contact" class="foldout-anchor" aria-hidden="true"></span>
+        <div class="paper-sticky">
+          <div id="paper-shelf" class="paper-shelf" aria-label="徐晓强的个人折页，向下滚动展开"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <dialog id="story-dialog" class="story-dialog" aria-labelledby="story-title">
+    <div class="viewport-cover" aria-hidden="true"></div>
+    <div class="reading-progress" aria-hidden="true"><span id="reading-progress"></span></div>
+    <header class="story-header"><button type="button" class="back-button" id="story-back" aria-label="返回磁带架"><span aria-hidden="true"><svg class="back-icon" viewBox="0 0 20 20" focusable="false"><path d="M17 10H3m5-5-5 5 5 5"/></svg></span><span class="back-label">返回</span></button><span class="story-header-label" id="story-header-label">SIDE A / TRACK 01</span><div class="story-arrows"><button type="button" id="story-prev" aria-label="上一个条目">←</button><button type="button" id="story-next" aria-label="下一个条目">→</button></div></header>
+    <nav id="story-index" class="story-index" aria-label="切换作品条目"></nav>
+    <div class="story-layout">
+      <aside class="story-object"><div class="story-object-inner"><span class="object-small-label" id="story-object-label">ORIGINAL RECORDING / 01</span><div id="story-cassette" aria-label="当前项目卡带，正面视角"></div><div class="object-caption"><span id="object-caption-name">播放器减负计划</span><span id="object-caption-kind">UX Renovation</span></div></div></aside>
+      <article class="story-content" id="story-content"><h2 id="story-title"></h2><div id="story-body"></div></article>
+    </div>
+  </dialog>
+
+  <dialog id="image-dialog" class="image-dialog" aria-labelledby="image-view-title">
+    <div class="viewport-cover" aria-hidden="true"></div>
+    <header><span id="image-view-title">项目大图</span><div class="image-actions"><button type="button" id="image-zoom" aria-pressed="false">放大查看 ⤢</button><button type="button" id="image-close" aria-label="关闭大图">关闭 ×</button></div></header><div class="image-canvas"><img id="full-image" alt="" draggable="false"></div><footer><button type="button" id="image-prev" aria-label="上一页">←</button><span id="image-counter"></span><button type="button" id="image-next" aria-label="下一页">→</button></footer>
+  </dialog>
+
+  <dialog id="access-dialog" class="access-dialog" aria-labelledby="access-title"><form id="access-form"><div class="access-topline"><span class="brand">simo<span>®</span></span><span class="access-edition">VOL. 01<br>PRIVATE ARCHIVE</span></div><span class="access-seal" aria-hidden="true"><span>5</span><small>RECORDINGS</small></span><p class="eyebrow">A PRIVATE COLLECTION</p><h2 id="access-title">欢迎来到我的<br><em>设计档案。</em></h2><p class="access-description">磁带与折页，记录关于产品、系统与人的设计实践。<br>输入访问密码，开始翻阅。</p><label for="access-password">访问密码</label><div class="password-field"><input id="access-password" type="password" autocomplete="current-password" required autofocus><button type="submit" aria-label="打开作品集">→</button></div><p id="access-error" role="alert"></p><div class="access-footnote" aria-hidden="true"><span>PORTFOLIO.CAS</span><span>SIMO / 2025</span></div></form></dialog>
+  <noscript><p class="no-script">此作品集需要 JavaScript 来浏览交互内容。你也可以访问<a href="../index.html">原版作品集</a>。</p></noscript>
+</body>
+</html>
