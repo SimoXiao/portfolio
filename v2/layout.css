@@ -47,7 +47,12 @@ html { background: var(--paper); }
 }
 body > .viewport-cover {
   height: calc(var(--viewport-cover-edge) * 2 + var(--visual-viewport-top) + var(--top-overscroll) + 44px);
-  background: linear-gradient(180deg, var(--paper) 0%, var(--paper) calc(100% - 44px), transparent 100%);
+  background: linear-gradient(180deg, var(--paper) 0%, var(--paper) calc(100% - 44px), rgba(238, 237, 231, 0) 100%);
+  opacity: var(--viewport-cover-active, 0);
+  transition: opacity 180ms ease;
+}
+body.has-page-scroll > .viewport-cover {
+  opacity: 1;
 }
 .story-dialog > .viewport-cover { z-index: 60; background: var(--story-paper); }
 .image-dialog > .viewport-cover { z-index: 60; background: #e5e6de; }
