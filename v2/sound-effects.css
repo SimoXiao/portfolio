@@ -37,21 +37,22 @@
 #paper-shelf > .paper-button { z-index: 2; }
 .paper-breeze-ambient-shadow {
   position: absolute;
-  left: 4%;
-  right: 4%;
-  bottom: -14px;
-  height: 44px;
+  left: 2%;
+  right: 2%;
+  bottom: -18px;
+  height: 54px;
   z-index: 0;
   pointer-events: none;
   border-radius: 50%;
   background: radial-gradient(ellipse 68% 58% at 62% 45%,
-    rgba(34,40,29,calc(.16 + var(--breeze-shadow-lift,0) * .18)) 0%,
-    rgba(34,40,29,calc(.07 + var(--breeze-shadow-lift,0) * .08)) 54%,
-    transparent 84%);
-  filter: blur(calc(6px + var(--breeze-shadow-lift,0) * 11px));
+    rgba(34,40,29,.22) 0%,
+    rgba(34,40,29,.12) 38%,
+    rgba(34,40,29,.04) 64%,
+    transparent 86%);
   transform: translate3d(calc(var(--breeze-shadow-lift,0) * 4px),var(--breeze-shadow-y,8px),0)
     rotate(calc(var(--breeze-shadow-lift,0) * 1.2deg))
-    scaleX(calc(.95 + var(--breeze-shadow-lift,0) * .05));
+    scaleX(calc(.95 + var(--breeze-shadow-lift,0) * .08))
+    scaleY(calc(.92 + var(--breeze-shadow-lift,0) * .22));
   opacity: var(--breeze-shadow-opacity,0);
 }
 .paper-easter-egg {

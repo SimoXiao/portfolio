@@ -576,8 +576,10 @@
     function tick(now) {
       frame = 0;
       if (!available()) { pause(); return; }
-      if (now - lastStep < 20) { frame = requestAnimationFrame(tick); return; }
-      const dt = Math.min(50, Math.max(10, lastStep ? now - lastStep : 20));
+      const activePull = overscrollLift > .001 || overscrollAccum > 0;
+      const interval = activePull ? 20 : 32;
+      if (now - lastStep < interval) { frame = requestAnimationFrame(tick); return; }
+      const dt = Math.min(60, Math.max(10, lastStep ? now - lastStep : interval));
       lastStep = now;
       if (!settled(now)) {
         restoreFold();

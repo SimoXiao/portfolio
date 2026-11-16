@@ -612,7 +612,15 @@
   // The shelf is a native vertical document. Track the tape nearest its centre
   // without cancelling wheel or touch scrolling, so returning keeps the context.
   let shelfFrame = 0;
-  const updateHeaderShade = () => document.body.classList.toggle('has-page-scroll', window.scrollY > 8);
+  let hasPageScroll = window.scrollY > 8;
+  const updateHeaderShade = () => {
+    const next = window.scrollY > 8;
+    if (next !== hasPageScroll) {
+      hasPageScroll = next;
+      document.body.classList.toggle('has-page-scroll', next);
+    }
+  };
+  document.body.classList.toggle('has-page-scroll', hasPageScroll);
   updateHeaderShade();
   window.addEventListener('wheel', () => { pinnedSelection = false; }, { passive: true });
   window.addEventListener('touchstart', () => { pinnedSelection = false; }, { passive: true });
@@ -620,22 +628,25 @@
     if (['PageUp', 'PageDown', ' '].includes(event.key) && !event.target.closest('button, input, dialog')) pinnedSelection = false;
   });
   window.addEventListener('scroll', () => {
-    updateHeaderShade();
-    if (!story.open) scene.updatePaperScroll();
-    if (story.open || pinnedSelection || document.body.dataset.layout === 'index') return;
-    cancelAnimationFrame(shelfFrame);
+    if (shelfFrame) return;
     shelfFrame = requestAnimationFrame(() => {
-      if (story.open || pinnedSelection || document.body.dataset.layout === 'index') return;
-      const centre = window.innerHeight * .53;
-      const buttons = $$('.tape-button');
+      shelfFrame = 0;
       let nearest = selected;
-      let distance = Infinity;
-      buttons.forEach((button, index) => {
-        const box = button.getBoundingClientRect();
-        const delta = Math.abs(box.top + box.height / 2 - centre);
-        if (delta < distance) { nearest = index; distance = delta; }
-      });
-      select(nearest, false);
+      if (!story.open && !pinnedSelection && document.body.dataset.layout !== 'index') {
+        const centre = window.innerHeight * .53;
+        const buttons = $$('.tape-button');
+        let distance = Infinity;
+        buttons.forEach((button, index) => {
+          const box = button.getBoundingClientRect();
+          const delta = Math.abs(box.top + box.height / 2 - centre);
+          if (delta < distance) { nearest = index; distance = delta; }
+        });
+      }
+      updateHeaderShade();
+      if (!story.open) scene.updatePaperScroll();
+      if (!story.open && !pinnedSelection && document.body.dataset.layout !== 'index' && nearest !== selected) {
+        select(nearest, false);
+      }
     });
   }, { passive: true });
 

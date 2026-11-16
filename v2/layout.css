@@ -45,6 +45,10 @@ html { background: var(--paper); }
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
+body > .viewport-cover {
+  height: calc(var(--viewport-cover-edge) * 2 + var(--visual-viewport-top) + var(--top-overscroll) + 44px);
+  background: linear-gradient(180deg, var(--paper) 0%, var(--paper) calc(100% - 44px), transparent 100%);
+}
 .story-dialog > .viewport-cover { z-index: 60; background: var(--story-paper); }
 .image-dialog > .viewport-cover { z-index: 60; background: #e5e6de; }
 .image-dialog > header { position: relative; z-index: 65; }
@@ -84,9 +88,9 @@ body.has-page-scroll::before { opacity: 1; }
 .rack > .tape-button[data-away] { transition: none; }
 .rack > .tape-button > .cassette-object { pointer-events: none; }
 .rack > .tape-button.is-unfolded::after {
-  height: 22px; opacity: .38;
-  transform: translateY(4px) scaleX(.9);
-  background: radial-gradient(ellipse 52% 45% at 50% 50%, #4e524614 0%, transparent 72%);
+  height: 26px; opacity: .95;
+  transform: translateY(4px) scaleX(.92);
+  background: radial-gradient(ellipse 55% 48% at 50% 48%, rgba(38, 45, 39, 0.11) 0%, rgba(38, 45, 39, 0.045) 48%, transparent 76%);
 }
 .shelf-index {
   left: var(--frame-edge);

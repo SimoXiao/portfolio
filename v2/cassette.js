@@ -35,12 +35,17 @@
       this.hostVisible = false;
       this.idleSteps = 0;
       this.idlePaints = 0;
+      this.idleCursor = 0;
+      this.paperCache = null;
+      this.paperCacheKey = '';
       this.render();
       this.resize = new ResizeObserver(() => this.fit());
       this.resize.observe(shelf);
       this.resize.observe(host);
       const paperShelf = document.querySelector('#paper-shelf');
       if (paperShelf) this.resize.observe(paperShelf);
+      const playerBar = document.querySelector('.archive-player');
+      if (playerBar) this.resize.observe(playerBar);
       window.addEventListener('resize', () => this.fit(), { passive: true });
       // Observe the stable layout boxes, never the drifting actor. No idle
       // callback remains queued behind a modal or an entirely offscreen shelf.
@@ -141,7 +146,7 @@
         solid.style.height = `${height}px`;
         solid.style.width = `${WIDTH}px`;
         if (paper) solid.removeAttribute('data-object');
-        solid.style.transform = home;
+        this.setSolidTransform({ solid }, home);
         if (paper) window.PaperPortrait.setState(root, 'folded', true);
         const driftSeed = {
           fx1: 0.58 + ((index * 0.13) % 0.22),
@@ -407,6 +412,13 @@
       this.host.dataset.visibleSide = side;
     }
 
+    setSolidTransform(model, transform) {
+      delete model.solid.dataset.animating;
+      model.solid.__directTransform = transform;
+      model.solid.style.transform = transform;
+      window.CassetteRenderer?.wake?.();
+    }
+
     spinPose(model, detail = model.root.parentElement === this.host) {
       const pitch = model.spinPitch || 0;
       const yaw = model.spinYaw || 0;
@@ -417,7 +429,7 @@
 
     drawTurntable(model) {
       if (model.paper || !['shelf', 'detail'].includes(this.phase) || model.root.classList.contains('is-flying')) return;
-      model.solid.style.transform = this.spinPose(model);
+      this.setSolidTransform(model, this.spinPose(model));
       model.idleApplied = true;
     }
 
@@ -430,6 +442,7 @@
     }
 
     fit() {
+      this.paperCache = null;
       this.models.forEach((model) => {
         if (!model.root.classList.contains('is-flying')) {
           const parent = model.root.parentElement;
@@ -442,30 +455,32 @@
     }
 
     paperScrollMetrics(model) {
-      const range = document.querySelector('#paper-scroll-range');
-      const rangeBox = range?.getBoundingClientRect();
       const scroll = window.scrollY;
-      const rangeTop = scroll + (rangeBox?.top ?? model.slot.getBoundingClientRect().top);
-      const sticky = range?.querySelector('.paper-sticky');
-      const stickyStyle = sticky && getComputedStyle(sticky);
       const viewportTop = Math.max(0, window.visualViewport?.offsetTop || 0);
       const viewportBottom = Math.min(innerHeight, viewportTop + (window.visualViewport?.height || innerHeight));
-      const safeTop = viewportTop + (parseFloat(stickyStyle?.top) || 0);
-      const playerTop = document.querySelector('.archive-player')?.getBoundingClientRect().top ?? viewportBottom;
-      const safeBottom = Math.max(safeTop + 1, Math.min(viewportBottom, playerTop));
-      const usableHeight = safeBottom - safeTop;
-      const paperTop = rangeTop + (parseFloat(stickyStyle?.paddingTop) || 0);
-      const tapes = [...this.models.values()].filter((entry) => !entry.paper);
-      const last = tapes[tapes.length - 1]?.slot.getBoundingClientRect();
-      const previous = tapes[tapes.length - 2]?.slot.getBoundingClientRect();
-      const pitch = last && previous ? Math.max(1, last.top - previous.top) : usableHeight * .15;
-      // The first screen may already show the folded paper in the lower 72%
-      // of its usable viewport. Require a real handoff from the final tape,
-      // rather than opening it immediately from an arbitrary vh threshold.
-      const lastCentre = last ? scroll + last.top + last.height / 2 : paperTop;
-      const start = Math.max(pitch * .5, paperTop - (safeTop + usableHeight * .72), lastCentre - (safeTop + usableHeight * .5));
-      const end = rangeTop + Math.max(0, (range?.offsetHeight || innerHeight * 2) - innerHeight);
-      const travel = Math.max(1, end - start);
+      const cacheKey = `${innerWidth}/${innerHeight}/${viewportTop}/${viewportBottom}`;
+      if (!this.paperCache || this.paperCacheKey !== cacheKey) {
+        const range = document.querySelector('#paper-scroll-range');
+        const rangeBox = range?.getBoundingClientRect();
+        const rangeTop = scroll + (rangeBox?.top ?? model.slot.getBoundingClientRect().top);
+        const sticky = range?.querySelector('.paper-sticky');
+        const stickyStyle = sticky && getComputedStyle(sticky);
+        const safeTop = viewportTop + (parseFloat(stickyStyle?.top) || 0);
+        const playerTop = document.querySelector('.archive-player')?.getBoundingClientRect().top ?? viewportBottom;
+        const safeBottom = Math.max(safeTop + 1, Math.min(viewportBottom, playerTop));
+        const usableHeight = safeBottom - safeTop;
+        const paperTop = rangeTop + (parseFloat(stickyStyle?.paddingTop) || 0);
+        const tapes = [...this.models.values()].filter((entry) => !entry.paper);
+        const last = tapes[tapes.length - 1]?.slot.getBoundingClientRect();
+        const previous = tapes[tapes.length - 2]?.slot.getBoundingClientRect();
+        const pitch = last && previous ? Math.max(1, last.top - previous.top) : usableHeight * .15;
+        const lastCentre = last ? scroll + last.top + last.height / 2 : paperTop;
+        const start = Math.max(pitch * .5, paperTop - (safeTop + usableHeight * .72), lastCentre - (safeTop + usableHeight * .5));
+        const end = rangeTop + Math.max(0, (range?.offsetHeight || innerHeight * 2) - innerHeight);
+        this.paperCache = { start, end, travel: Math.max(1, end - start), visible: model.slot.offsetWidth > 0 };
+        this.paperCacheKey = cacheKey;
+      }
+      const { start, end, travel } = this.paperCache;
       const distance = scroll - start;
       // Scroll positions round to CSS pixels while the print frame can end on
       // a fraction. Treat the last pixel as a fully closed/open paper stop.
@@ -484,8 +499,11 @@
     updatePaperScroll() {
       const model = this.models.get('about');
       if (!model?.paper || model.root.parentElement !== model.slot || this.activeId === 'about') return;
-      const box = model.slot.getBoundingClientRect();
-      if (box.width < 1 || box.height < 1) return;
+      if (document.body.dataset.layout === 'index') return;
+      if (!this.paperCache) {
+        const box = model.slot.getBoundingClientRect();
+        if (box.width < 1 || box.height < 1) return;
+      } else if (!this.paperCache.visible) return;
       const { progress, fraction, start, end } = this.paperScrollMetrics(model);
       // Raw is the fold target before the 65ms follower; visual is what is
       // actually painted. The cue and optional haptics consume this contract.
@@ -549,6 +567,8 @@
 
     freeze(model) {
       const transform = getComputedStyle(model.solid).transform;
+      delete model.solid.__directTransform;
+      delete model.solid.dataset.animating;
       model.solid.style.transform = transform;
       model.poseAnimation?.cancel();
       model.poseAnimation = null;
@@ -572,7 +592,7 @@
       if (!preview) this.resetTurntable(model);
       const to = preview ? this.spinPose(model, false) : model.home;
       model.slot.classList.toggle('is-unfolded', preview);
-      model.solid.style.transform = to;
+      this.setSolidTransform(model, to);
       if (!this.reduce.matches) {
         const matrix = new DOMMatrix(from);
         const atRest = Math.abs(Math.atan2(matrix.m23, matrix.m22) * 180 / Math.PI + model.restAngle) < 3;
@@ -581,11 +601,15 @@
           { transform: model.lifted, offset: .16, easing: EASE },
           { transform: to, offset: 1 }
         ] : [{ transform: from, easing: EASE }, { transform: to }];
+        delete model.solid.__directTransform;
+        model.solid.dataset.animating = '1';
         const anim = model.solid.animate(frames, { duration: preview ? 660 : 540, easing: 'linear' });
         model.poseAnimation = anim;
+        window.CassetteRenderer?.wake?.();
         anim.finished.then(() => {
           if (model.poseAnimation === anim) {
             model.poseAnimation = null;
+            this.setSolidTransform(model, to);
             model.settledAt = performance.now();
             this.startIdle();
           }
@@ -639,7 +663,7 @@
       // Its own pose animation is the sole writer until the actor is mounted.
       if ((force || model.idleApplied) && !model.poseAnimation && !model.root.classList.contains('is-flying') &&
         !(['opening', 'closing'].includes(this.phase) && model.item.id === this.activeId)) {
-        model.solid.style.transform = model.root.parentElement === this.host ? this.spinPose(model, true) : model.previewing ? this.spinPose(model, false) : model.home;
+        this.setSolidTransform(model, model.root.parentElement === this.host ? this.spinPose(model, true) : model.previewing ? this.spinPose(model, false) : model.home);
       }
       model.idleApplied = false;
     }
@@ -647,6 +671,7 @@
     updateIdleFloat(now) {
       // Slightly slower, calmer breathing pace (~13-16s cycle) while keeping visible amplitude
       const t = now * 0.00060;
+      const resting = [];
 
       this.idleModels.forEach((model) => {
         if (model.paper || model.poseAnimation || model.root.classList.contains('is-flying')) return;
@@ -663,8 +688,6 @@
         const spinYaw = model.spinYaw || 0, spinPitch = model.spinPitch || 0;
         if (model.item.id === this.activeId) this.updateTurntableUI(model);
         if (env < 0.01 && Math.abs(spinYaw) + Math.abs(spinPitch) < .001 && !model.dragging360) return;
-        model.idleApplied = true;
-        this.idlePaints += 1;
 
         // Non-repeating multi-harmonic slow random drift per cassette
         const driftX = (Math.sin(t * s.fx1 + s.px1) * 0.72 + Math.cos(t * s.fx2 + s.px2) * 0.28);
@@ -672,39 +695,54 @@
         const driftZ = (Math.cos(t * s.fz1 + s.pz1) * 0.74 + Math.sin(t * s.fx1 * 0.85 + s.py1) * 0.26);
 
         if (this.phase === 'detail' && this.activeId === model.item.id && model.root.parentElement === this.host) {
+          model.idleApplied = true;
+          this.idlePaints += 1;
           const dx = (driftX * 1.15) * env;
           const dy = (driftY * 2.25) * env;
           const rx = -90 + spinPitch + (driftZ * 0.82) * env;
           const ry = (driftX * 1.08) * env;
           const rz = spinYaw + (driftY * 0.26) * env;
-          model.solid.style.transform = `perspective(3000px) translate3d(${dx.toFixed(2)}px,${dy.toFixed(2)}px,0) rotateX(${rx.toFixed(3)}deg) rotateY(${ry.toFixed(3)}deg) rotateZ(${rz.toFixed(3)}deg)`;
+          this.setSolidTransform(model, `perspective(3000px) translate3d(${dx.toFixed(2)}px,${dy.toFixed(2)}px,0) rotateX(${rx.toFixed(3)}deg) rotateY(${ry.toFixed(3)}deg) rotateZ(${rz.toFixed(3)}deg)`);
           return;
         }
 
         if (this.phase === 'shelf' && model.root.parentElement === model.slot) {
           if (model.previewing) {
+            model.idleApplied = true;
+            this.idlePaints += 1;
             const dx = (driftX * 1.05) * env;
             const dy = -8 + (driftY * 2.05) * env;
             const dz = 38 + (driftZ * 2.6) * env;
             const rx = -76 + spinPitch + (driftZ * 0.72) * env;
             const ry = -3 + (driftX * 0.96) * env;
             const rz = -1.2 + spinYaw + (driftY * 0.24) * env;
-            model.solid.style.transform = `perspective(3000px) translate3d(${dx.toFixed(2)}px,${dy.toFixed(2)}px,${dz.toFixed(2)}px) rotateX(${rx.toFixed(3)}deg) rotateY(${ry.toFixed(3)}deg) rotateZ(${rz.toFixed(3)}deg)`;
+            this.setSolidTransform(model, `perspective(3000px) translate3d(${dx.toFixed(2)}px,${dy.toFixed(2)}px,${dz.toFixed(2)}px) rotateX(${rx.toFixed(3)}deg) rotateY(${ry.toFixed(3)}deg) rotateZ(${rz.toFixed(3)}deg)`);
           } else {
-            const dx = (driftX * 1.25) * env;
-            const dy = (driftY * 2.45) * env;
-            const dz = (driftZ * 3.2) * env;
-            const rx = -model.restAngle + (driftY * 0.86) * env;
-            const ry = (driftX * 1.15) * env;
-            const rz = (driftZ * 0.28) * env;
-            model.solid.style.transform = `perspective(3000px) translate3d(${dx.toFixed(2)}px,${dy.toFixed(2)}px,${dz.toFixed(2)}px) rotateX(${rx.toFixed(3)}deg) rotateY(${ry.toFixed(3)}deg) rotateZ(${rz.toFixed(3)}deg)`;
-            const shadowScale = 1 - (dy / 24) * 0.14;
-            const shadowOpacity = 1 + (dy / 18) * 0.18;
-            model.slot.style.setProperty('--idle-shadow-scale', shadowScale.toFixed(3));
-            model.slot.style.setProperty('--idle-shadow-opacity', shadowOpacity.toFixed(3));
+            resting.push({ model, env, driftX, driftY, driftZ });
           }
         }
       });
+
+      if (resting.length) {
+        const batch = Math.min(2, resting.length);
+        for (let offset = 0; offset < batch; offset++) {
+          const { model, env, driftX, driftY, driftZ } = resting[(this.idleCursor + offset) % resting.length];
+          model.idleApplied = true;
+          this.idlePaints += 1;
+          const dx = (driftX * 1.25) * env;
+          const dy = (driftY * 2.45) * env;
+          const dz = (driftZ * 3.2) * env;
+          const rx = -model.restAngle + (driftY * 0.86) * env;
+          const ry = (driftX * 1.15) * env;
+          const rz = (driftZ * 0.28) * env;
+          this.setSolidTransform(model, `perspective(3000px) translate3d(${dx.toFixed(2)}px,${dy.toFixed(2)}px,${dz.toFixed(2)}px) rotateX(${rx.toFixed(3)}deg) rotateY(${ry.toFixed(3)}deg) rotateZ(${rz.toFixed(3)}deg)`);
+          const shadowScale = 1 - (dy / 24) * 0.14;
+          const shadowOpacity = 1 + (dy / 18) * 0.18;
+          model.slot.style.setProperty('--idle-shadow-scale', shadowScale.toFixed(3));
+          model.slot.style.setProperty('--idle-shadow-opacity', shadowOpacity.toFixed(3));
+        }
+        this.idleCursor = (this.idleCursor + batch) % resting.length;
+      }
     }
 
     cancelFlights() {
@@ -727,7 +765,7 @@
       model.slot.style.removeProperty('height');
       model.slot.removeAttribute('data-away');
       this.resetTurntable(model);
-      model.solid.style.transform = model.hovering && !this.reduce.matches ? model.hover : model.home;
+      this.setSolidTransform(model, model.hovering && !this.reduce.matches ? model.hover : model.home);
       model.idleApplied = false;
       this.clearIdleShadow(model);
       model.settledAt = performance.now();
@@ -742,7 +780,7 @@
       this.host.append(model.root);
       this.resetTurntable(model);
       this.updateTurntableUI(model);
-      model.solid.style.transform = model.front;
+      this.setSolidTransform(model, model.front);
       model.idleApplied = false;
       this.clearIdleShadow(model);
       model.settledAt = performance.now();
@@ -766,9 +804,10 @@
       model.root.classList.add('is-flying');
       model.root.style.transform = this.transform(start, model);
       this.dialog.append(model.root);
+      window.CassetteRenderer?.wake?.();
       if (this.reduce.matches) {
         model.root.style.transform = this.transform(destination, model);
-        model.solid.style.transform = pose;
+        this.setSolidTransform(model, pose);
         return;
       }
       const moving = model.root.animate([
@@ -812,7 +851,7 @@
       if (model.paper) window.PaperPortrait.setState(model.root, 'open', this.reduce.matches);
       await this.flight(model, destination, model.front, { fallback: !continuing && (!fromShelf || !source.visible) });
       if (revision !== this.revision) return false;
-      model.solid.style.transform = model.front;
+      this.setSolidTransform(model, model.front);
       model.root.style.transform = this.transform(destination, model);
       this.flights.forEach((animation) => animation.cancel()); this.flights.clear();
       this.mountFront(model);
