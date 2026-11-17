@@ -186,6 +186,7 @@
   new MutationObserver(scheduleSync).observe(bridge, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['aria-label'] });
   new MutationObserver(scheduleSync).observe(shelfIndex, { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-current'] });
   new MutationObserver(scheduleSync).observe(story, { attributes: true, attributeFilter: ['open'] });
+  new MutationObserver(scheduleProgress).observe(document.body, { attributes: true, attributeFilter: ['data-section', 'data-layout'] });
   window.addEventListener('scroll', scheduleProgress, { passive: true });
   window.addEventListener('resize', scheduleProgress, { passive: true });
   story.addEventListener('scroll', scheduleProgress, { passive: true });

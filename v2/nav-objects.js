@@ -4,9 +4,9 @@
   const nav = document.querySelector('.header-nav');
   if (!nav || nav.classList.contains('has-micro-nav')) return;
   const definitions = [
+    { selector: '[data-about-nav], [data-open="about"]', key: 'about', label: 'Intro', kind: 'paper', variant: 'navigation' },
     { selector: '[data-collection]', key: 'works', label: '作品', kind: 'cassette', variant: 'navigation' },
     { selector: '[data-explore-nav]', key: 'explore', label: '探索', kind: 'explore', variant: 'navigation' },
-    { selector: '[data-about-nav], [data-open="about"]', key: 'about', label: '关于', kind: 'paper', variant: 'navigation' },
     { selector: '[href="#contact"]', key: 'contact', label: '联系', kind: 'envelope' }
   ];
   const entries = definitions.map((definition) => {
@@ -31,7 +31,6 @@
   let frame = 0;
   let intent = null;
   let intentTimer = 0;
-  const about = document.querySelector('#about-foldout');
   const story = document.querySelector('#story-dialog');
 
   function mark(key) {
@@ -48,22 +47,14 @@
       mark(document.body.dataset.section === 'explore' ? 'explore' : 'works');
       return;
     }
-    if (document.body.dataset.section === 'explore') {
-      mark('explore');
-      return;
-    }
-    if (document.body.dataset.section === 'about') {
-      mark('about');
-      return;
-    }
-    const box = about?.getBoundingClientRect();
-    const atAbout = box && box.top <= innerHeight * .35 && box.bottom > 144;
+    const section = document.body.dataset.section;
+    const active = section === 'about' || section === 'explore' || section === 'contact' ? section : 'works';
     if (intent && performance.now() < intent.until) {
-      const arrived = intent.key === 'works' ? !atAbout && scrollY < 30 : intent.key === 'contact' ? atAbout : false;
+      const arrived = intent.key === active;
       if (arrived) intent = null;
       else { mark(intent.key); return; }
     } else intent = null;
-    mark(atAbout ? (location.hash === '#contact' ? 'contact' : 'about') : 'works');
+    mark(active);
   }
   function schedule() { if (!frame) frame = requestAnimationFrame(update); }
   function signalIntent(key) {

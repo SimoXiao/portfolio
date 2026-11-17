@@ -180,6 +180,68 @@
     $('#project-list').innerHTML = data.projects.map((project) => `<article class="project-row" style="--row-color:${project.color}"><span class="row-number">${project.track}</span><div class="row-media"><img draggable="false" src="${pagePath(project.cover, 'thumbs')}" width="800" height="450" loading="lazy" decoding="async" alt="${escape(project.title)}作品预览"></div><div class="row-body"><span class="row-kicker">SIDE ${project.side} / ${escape(project.subtitle)}</span><h3><a class="row-link" href="#${project.id}" data-open="${project.id}">${escape(project.title)}</a></h3><p>${escape(project.summary)}</p><div class="row-meta"><span>${escape(project.role)}</span><span>${project.metrics[0] ? `${escape(project.metrics[0].value)} ${escape(project.metrics[0].label)} · ${escape(project.metrics[0].note)}` : ''}</span></div></div><span class="row-arrow" aria-hidden="true">↗</span></article>`).join('');
     renderStoryIndex(items);
     renderExplore();
+    renderContact();
+  }
+
+  function renderContact() {
+    const contactEl = $('#contact');
+    if (!contactEl) return;
+    const author = data.author;
+    const formattedPhone = String(author.phone || '').replace(/^(\d{3})(\d{4})(\d{4})$/, '$1 $2 $3');
+    const currentExp = author.experience?.[0];
+    const roleSummary = currentExp
+      ? `${author.role} · ${author.years} 年经验 · ${currentExp.company} ${currentExp.role}`
+      : `${author.role} · ${author.years} 年互联网设计经验`;
+    contactEl.innerHTML = `
+      <div class="contact-sheet">
+        <div class="contact-hero" data-micro-trigger>
+          <span class="micro-object contact-envelope-hero" data-micro-kind="envelope" data-micro-entry="once" aria-hidden="true"></span>
+          <div class="contact-hero-copy">
+            <p class="eyebrow">SIDE D / POSITIONING & CONTACT</p>
+            <h2 id="contact-title">${escape(author.nameZh)} <span>/ ${escape(author.alias)}</span></h2>
+            <p class="contact-role">${escape(roleSummary)}</p>
+          </div>
+        </div>
+        <p class="contact-lead">${escape(author.description)}</p>
+        <div class="contact-pillars" aria-label="核心定位方向">
+          <span>产品体验重构</span>
+          <span>设计系统建设</span>
+          <span>视觉与动效</span>
+          <span>AI 设计工程</span>
+        </div>
+        <div class="contact-primary-row">
+          <a class="contact-email" href="mailto:${escape(author.email)}">${escape(author.email)} <span aria-hidden="true">↗</span></a>
+          <button type="button" class="contact-copy-btn" id="contact-copy-email">复制邮箱</button>
+        </div>
+        <div class="contact-meta-row">
+          <div class="contact-links">
+            <a href="tel:${escape(author.phone)}">${escape(formattedPhone)} ↗</a>
+            <a href="assets/docs/xu-xiaoqiang-resume.pdf" target="_blank" rel="noopener">完整简历 PDF ↗</a>
+            <button type="button" id="contact-open-paper">展开个人折页 ↗</button>
+          </div>
+          <span class="contact-colophon">© 2025 ${escape(author.nameEn)} / ${escape(author.alias)}</span>
+        </div>
+      </div>
+    `;
+    const copyBtn = $('#contact-copy-email', contactEl);
+    copyBtn?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard?.writeText(author.email);
+        copyBtn.textContent = '已复制 ✓';
+        copyBtn.classList.add('is-copied');
+        window.ArchiveSound?.tick?.(1);
+        clearTimeout(copyBtn._timer);
+        copyBtn._timer = setTimeout(() => {
+          copyBtn.textContent = '复制邮箱';
+          copyBtn.classList.remove('is-copied');
+        }, 2000);
+      } catch (_) {
+        copyBtn.textContent = author.email;
+      }
+    });
+    $('#contact-open-paper', contactEl)?.addEventListener('click', () => {
+      window.SimoOpenPersonalPaper?.();
+    });
   }
 
   function renderStoryIndex(pool) {
@@ -683,15 +745,53 @@
     scene.fit();
   }
 
-  function showCollection(layout = document.body.dataset.layout || 'shelf') {
+  const SECTION_FLOW = ['about', 'works', 'explore', 'contact'];
+  let programmaticScrollUntil = 0;
+  const getCurrentSection = () => {
+    const section = document.body.dataset.section;
+    return ['about', 'explore', 'contact'].includes(section) ? section : 'works';
+  };
+  function instantScrollTo(top) {
+    programmaticScrollUntil = performance.now() + 140;
+    window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
+  }
+  function getSectionShiftTargets(sectionKey = getCurrentSection()) {
+    if (sectionKey === 'about') return [$('#about .about-stage-only')].filter(Boolean);
+    if (sectionKey === 'explore') return [$('#explore .cd-showcase')].filter(Boolean);
+    if (sectionKey === 'contact') return [$('#contact .contact-sheet')].filter(Boolean);
+    if (document.body.dataset.layout === 'index') return [$('#project-index')].filter(Boolean);
+    return [$('#collection .tape-stage'), $('#paper-shelf')].filter(Boolean);
+  }
+  function animateSectionEnter(sectionKey, direction = 0) {
+    const targets = getSectionShiftTargets(sectionKey);
+    if (!targets.length || reducedMotion.matches || !direction) return;
+    const offset = direction > 0 ? 18 : -18;
+    targets.forEach((el) => {
+      el.getAnimations().forEach((animation) => animation.cancel());
+      if (sectionKey === 'about') {
+        el.animate([{ opacity: 0.45 }, { opacity: 1 }], { duration: 200, easing: 'cubic-bezier(.22,.72,.18,1)' });
+      } else {
+        el.animate([
+          { opacity: 0.35, transform: `translate3d(0,${offset}px,0)` },
+          { opacity: 1, transform: 'translate3d(0,0,0)' }
+        ], { duration: 260, easing: 'cubic-bezier(.22,.72,.18,1)' });
+      }
+    });
+  }
+
+  function showCollection(layout = document.body.dataset.layout || 'shelf', { route = true, scrollToBottom = false, direction = 0 } = {}) {
     const reveal = () => {
       delete document.body.dataset.section;
       applyCollectionLayout(layout);
       // Leaving the folded profile must clear its route and scroll position.
       // Otherwise scroll anchoring keeps the newly visible directory offscreen.
-      history.replaceState({ portfolioLayout: layout }, '', location.pathname + location.search);
-      window.scrollTo({ top: 0, behavior: 'instant' });
+      if (route) history.replaceState({ portfolioLayout: layout }, '', location.pathname + location.search);
+      const scrollingEl = document.scrollingElement || document.documentElement;
+      const targetTop = scrollToBottom ? Math.max(0, scrollingEl.scrollHeight - window.innerHeight) : 0;
+      instantScrollTo(targetTop);
       scene.updatePaperScroll();
+      updateHeaderShade();
+      animateSectionEnter('works', direction);
     };
     if (story.open) {
       const closing = closeStory();
@@ -700,12 +800,15 @@
     } else reveal();
   }
 
-  function showExplore(route = true) {
+  function showExplore(route = true, { scrollToBottom = false, direction = 0 } = {}) {
     const reveal = () => {
       document.body.dataset.section = 'explore';
       if (route) history.replaceState({ portfolioSection: 'explore' }, '', '#explore');
-      window.scrollTo({ top: 0, behavior: 'instant' });
+      const scrollingEl = document.scrollingElement || document.documentElement;
+      const targetTop = scrollToBottom ? Math.max(0, scrollingEl.scrollHeight - window.innerHeight) : 0;
+      instantScrollTo(targetTop);
       updateHeaderShade();
+      animateSectionEnter('explore', direction);
     };
     if (story.open) {
       const closing = closeStory();
@@ -714,12 +817,29 @@
     } else reveal();
   }
 
-  function showAbout(route = true) {
+  function showAbout(route = true, { direction = 0 } = {}) {
     const reveal = () => {
       document.body.dataset.section = 'about';
       if (route) history.replaceState({ portfolioSection: 'about' }, '', '#about');
-      window.scrollTo({ top: 0, behavior: 'instant' });
+      instantScrollTo(0);
       updateHeaderShade();
+      animateSectionEnter('about', direction);
+    };
+    if (story.open) {
+      const closing = closeStory();
+      const revision = viewRevision;
+      closing.then(() => { if (revision === viewRevision && !story.open) reveal(); });
+    } else reveal();
+  }
+
+  function showContact(route = true, { direction = 0 } = {}) {
+    const reveal = () => {
+      document.body.dataset.section = 'contact';
+      if (route) history.replaceState({ portfolioSection: 'contact' }, '', '#contact');
+      instantScrollTo(0);
+      updateHeaderShade();
+      animateSectionEnter('contact', direction);
+      window.ArchiveObjects?.play?.('#contact .micro-object');
     };
     if (story.open) {
       const closing = closeStory();
@@ -756,7 +876,7 @@
     const item = allEntries.find((entry) => entry.id === id);
     if (!item || !authenticated) return;
     if (id === 'about') {
-      if (trigger?.closest?.('#rack, #shelf-index, .archive-player')) revealAbout(false);
+      if (trigger?.closest?.('#rack, #paper-shelf, #shelf-index, .now-playing, .archive-player')) revealAbout(false);
       else showAbout(route);
       return;
     }
@@ -880,7 +1000,11 @@
 
   function syncRoute() {
     const id = location.hash.slice(1);
-    if (['contact', 'experience'].includes(id)) { revealAbout(false, id); return; }
+    if (id === 'experience') { revealAbout(false, id); return; }
+    if (id === 'contact') {
+      showContact(false);
+      return;
+    }
     if (id === 'about') {
       showAbout(false);
       return;
@@ -896,6 +1020,7 @@
       ownsHistoryEntry = Boolean(history.state?.fromShelf);
       openItem(id, null, false);
     } else {
+      if (history.state?.portfolioSection === 'contact') { showContact(false); return; }
       if (history.state?.portfolioSection === 'explore') { showExplore(false); return; }
       if (history.state?.portfolioSection === 'about') { showAbout(false); return; }
       delete document.body.dataset.section;
@@ -915,12 +1040,12 @@
     initialViewFrame = 0;
     if (!initialViewPending || !authenticated) return;
     const id = location.hash.slice(1);
-    if (['contact', 'experience'].includes(id)) {
+    if (id === 'experience') {
       // Resolve the actual unfolded end after fonts and the mobile viewport fit.
       if (!story.open) revealAbout(false, id, true);
-    } else if (!story.open && !allEntries.some((item) => item.id === id) && id !== 'explore' && id !== 'about') {
+    } else if (!story.open && !allEntries.some((item) => item.id === id) && !['explore', 'about', 'contact'].includes(id)) {
       select(0, false, true);
-      window.scrollTo({ top: 0, behavior: 'instant' });
+      instantScrollTo(0);
       scene.updatePaperScroll();
     }
   }
@@ -1049,8 +1174,9 @@
   }));
   window.SimoOpenPersonalPaper = () => {
     if (!authenticated) return;
+    const fromOtherSection = getCurrentSection() !== 'works';
     history.pushState({ portfolioSection: 'paper', fromMp3: true }, '', '#experience');
-    revealAbout(false, 'experience', false);
+    revealAbout(false, 'experience', fromOtherSection);
   };
   $$('[data-explore-filter]').forEach((button) => button.addEventListener('click', () => {
     exploreFilter = button.dataset.exploreFilter;
@@ -1058,7 +1184,7 @@
     renderExplore();
   }));
   $$('.header-nav a[href="#contact"]').forEach((link) => link.addEventListener('click', (event) => {
-    event.preventDefault(); revealAbout(true, 'contact');
+    event.preventDefault(); showContact(true);
   }));
   $$('.view-switch [data-layout]').forEach((button) => button.addEventListener('click', () => {
     showCollection(button.dataset.layout);
@@ -1132,6 +1258,8 @@
   // without cancelling wheel or touch scrolling, so returning keeps the context.
   let shelfFrame = 0;
   let hasPageScroll = window.scrollY > 8;
+  let lastObservedScrollY = window.scrollY;
+  let lastScrollMovedAt = performance.now() - 500;
   const updateHeaderShade = () => {
     const next = window.scrollY > 8;
     if (next !== hasPageScroll) {
@@ -1147,6 +1275,11 @@
     if (['PageUp', 'PageDown', ' '].includes(event.key) && !event.target.closest('button, input, dialog')) pinnedSelection = false;
   });
   window.addEventListener('scroll', () => {
+    const now = performance.now();
+    if (now > programmaticScrollUntil && Math.abs(window.scrollY - lastObservedScrollY) >= 1) {
+      lastScrollMovedAt = now;
+    }
+    lastObservedScrollY = window.scrollY;
     if (shelfFrame) return;
     shelfFrame = requestAnimationFrame(() => {
       shelfFrame = 0;
@@ -1168,6 +1301,285 @@
       }
     });
   }, { passive: true });
+
+  // Four-section vertical flow with tactile boundary damping:
+  // about (#1) <-> works (#2, default landing) <-> explore (#3) <-> contact (#4).
+  (() => {
+    const mainEl = $('#main-content');
+    if (!mainEl) return;
+    const cue = document.createElement('div');
+    cue.id = 'section-damping-cue';
+    cue.className = 'section-damping-cue';
+    cue.setAttribute('aria-hidden', 'true');
+    cue.innerHTML = '<span class="damping-cue-arrow"></span><span class="damping-cue-label"></span><span class="damping-cue-bar"><i></i></span>';
+    document.body.append(cue);
+    const cueArrow = $('.damping-cue-arrow', cue);
+    const cueLabel = $('.damping-cue-label', cue);
+    const cueLabels = {
+      'about->works': { dir: 'down', idle: '继续下滑进入「作品」', ready: '即将进入「作品」' },
+      'works->about': { dir: 'up', idle: '下拉进入「Intro」', ready: '松开进入「Intro」' },
+      'works->explore': { dir: 'down', idle: '继续下滑进入「探索」', ready: '即将进入「探索」' },
+      'explore->works': { dir: 'up', idle: '上滑返回「作品」', ready: '即将返回「作品」' },
+      'explore->contact': { dir: 'down', idle: '继续下滑进入「联系」', ready: '即将进入「联系」' },
+      'contact->explore': { dir: 'up', idle: '上滑返回「探索」', ready: '即将返回「探索」' }
+    };
+    const WHEEL_THRESHOLD = 240;
+    const WHEEL_HOLD_MS = 480;
+    const TOUCH_THRESHOLD = 108;
+    const BOUNDARY_SETTLE_MS = 260;
+    let pullDir = 0;
+    let pullAmount = 0;
+    let decayTimer = 0;
+    let clearTransformTimer = 0;
+    let lastSwitchAt = 0;
+    let cooldownUntil = 0;
+    let inertiaPauseUntil = 0;
+    let lastWheelAt = 0;
+    let lastThresholdTick = false;
+    let touchState = null;
+
+    const canStep = (dir) => {
+      const idx = SECTION_FLOW.indexOf(getCurrentSection());
+      return idx >= 0 && idx + dir >= 0 && idx + dir < SECTION_FLOW.length;
+    };
+    const boundaryState = () => {
+      const el = document.scrollingElement || document.documentElement;
+      const scrollTop = window.scrollY;
+      const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
+      return {
+        scrollTop,
+        maxScroll,
+        atTop: scrollTop <= 2,
+        atBottom: maxScroll <= 2 || scrollTop >= maxScroll - 3
+      };
+    };
+    const isBlocked = () => (
+      !authenticated ||
+      story.open ||
+      lightbox.open ||
+      access.open ||
+      Boolean(document.querySelector('#archive-player-queue:not([hidden])'))
+    );
+    const is3dDragging = () => Boolean(document.querySelector('.is-dragging, .is-spinning-360'));
+    const renderDamping = (dir, ratio, animateRelease = false) => {
+      const targets = getSectionShiftTargets();
+      const clamped = Math.max(0, Math.min(1, ratio));
+      if (clamped <= 0.005 || !dir) {
+        cue.classList.remove('is-visible');
+        cue.dataset.ready = 'false';
+        cue.style.setProperty('--damping-progress', '0');
+        clearTimeout(clearTransformTimer);
+        if (animateRelease && !reducedMotion.matches && targets.length) {
+          targets.forEach((el) => {
+            el.style.transition = 'transform 260ms cubic-bezier(.22,.72,.18,1)';
+            el.style.transform = 'translate3d(0,0,0)';
+          });
+          clearTransformTimer = setTimeout(() => {
+            $$('#about .about-stage-only, #collection .tape-stage, #paper-shelf, #project-index, #explore .cd-showcase, #contact .contact-sheet').forEach((el) => {
+              el.style.removeProperty('transform');
+              el.style.removeProperty('transition');
+            });
+          }, 270);
+        } else {
+          $$('#about .about-stage-only, #collection .tape-stage, #paper-shelf, #project-index, #explore .cd-showcase, #contact .contact-sheet').forEach((el) => {
+            el.style.removeProperty('transform');
+            el.style.removeProperty('transition');
+          });
+        }
+        lastThresholdTick = false;
+        return;
+      }
+      const current = getCurrentSection();
+      const next = SECTION_FLOW[SECTION_FLOW.indexOf(current) + dir];
+      const copy = cueLabels[`${current}->${next}`];
+      if (!copy) return;
+      const ready = clamped >= 0.92;
+      cue.dataset.direction = copy.dir;
+      cue.dataset.ready = String(ready);
+      cueArrow.textContent = copy.dir === 'up' ? '↑' : '↓';
+      cueLabel.textContent = ready ? copy.ready : copy.idle;
+      cue.style.setProperty('--damping-progress', clamped.toFixed(3));
+      cue.classList.add('is-visible');
+      if (ready && !lastThresholdTick) {
+        lastThresholdTick = true;
+        window.ArchiveSound?.tick?.(dir > 0 ? 2 : 0);
+      } else if (!ready) {
+        lastThresholdTick = false;
+      }
+      if (!reducedMotion.matches && targets.length) {
+        clearTimeout(clearTransformTimer);
+        const easedShift = 26 * (1 - Math.exp(-clamped * 2.4)) / (1 - Math.exp(-2.4));
+        const shift = (dir > 0 ? -easedShift : easedShift).toFixed(2);
+        targets.forEach((el) => {
+          el.style.transition = 'none';
+          el.style.transform = `translate3d(0,${shift}px,0)`;
+        });
+      }
+    };
+    const resetDamping = (animate = true) => {
+      clearTimeout(decayTimer);
+      pullDir = 0;
+      pullAmount = 0;
+      renderDamping(0, 0, animate);
+    };
+    const commitSectionStep = (dir) => {
+      const current = getCurrentSection();
+      const idx = SECTION_FLOW.indexOf(current);
+      const target = SECTION_FLOW[idx + dir];
+      if (!target) { resetDamping(true); return; }
+      resetDamping(false);
+      const now = performance.now();
+      lastSwitchAt = now;
+      cooldownUntil = now + 920;
+      inertiaPauseUntil = now + 320;
+      pinnedSelection = false;
+      if (typeof navigator.vibrate === 'function' && navigator.userActivation?.hasBeenActive) {
+        try { navigator.vibrate(6); } catch (_) {}
+      }
+      window.ArchiveSound?.tick?.(dir > 0 ? 3 : 1);
+      if (target === 'about') {
+        showAbout(true, { direction: dir });
+      } else if (target === 'works') {
+        const layout = document.body.dataset.layout || 'shelf';
+        showCollection(layout, { route: true, scrollToBottom: dir < 0, direction: dir });
+      } else if (target === 'explore') {
+        showExplore(true, { scrollToBottom: dir < 0, direction: dir });
+      } else if (target === 'contact') {
+        showContact(true, { direction: dir });
+      }
+    };
+
+    window.addEventListener('wheel', (event) => {
+      const now = performance.now();
+      const gapSinceWheel = now - lastWheelAt;
+      lastWheelAt = now;
+      if (now < cooldownUntil) {
+        if (gapSinceWheel < 160 && now - lastSwitchAt < 1350) {
+          inertiaPauseUntil = Math.min(lastSwitchAt + 1350, now + 180);
+        }
+        return;
+      }
+      if (now < inertiaPauseUntil) {
+        if (gapSinceWheel < 160 && now - lastSwitchAt < 1350) {
+          inertiaPauseUntil = Math.min(lastSwitchAt + 1350, now + 180);
+          return;
+        }
+      }
+      const rawDeltaY = event.deltaMode === 1 ? event.deltaY * 32 : event.deltaMode === 2 ? event.deltaY * 120 : event.deltaY;
+      if (isBlocked() || is3dDragging() || Math.abs(rawDeltaY) <= Math.abs(event.deltaX) || Math.abs(rawDeltaY) < 1) return;
+      const dir = rawDeltaY > 0 ? 1 : -1;
+      if (!canStep(dir)) {
+        if (pullAmount > 0) resetDamping(true);
+        return;
+      }
+      const { maxScroll, atTop, atBottom } = boundaryState();
+      const atEdge = dir < 0 ? atTop : atBottom;
+      if (!atEdge) {
+        if (pullAmount > 0) resetDamping(true);
+        return;
+      }
+      if (maxScroll > 4 && now - lastScrollMovedAt < BOUNDARY_SETTLE_MS) {
+        if (pullAmount > 0) resetDamping(true);
+        return;
+      }
+      if (pullDir !== dir) {
+        pullDir = dir;
+        pullAmount = 0;
+      }
+      const step = Math.min(68, Math.abs(rawDeltaY));
+      pullAmount += step;
+      const ratio = pullAmount / WHEEL_THRESHOLD;
+      renderDamping(dir, ratio, false);
+      clearTimeout(decayTimer);
+      if (pullAmount >= WHEEL_THRESHOLD) {
+        commitSectionStep(dir);
+      } else {
+        decayTimer = setTimeout(() => resetDamping(true), WHEEL_HOLD_MS);
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchstart', (event) => {
+      if (!event.isTrusted || event.touches.length !== 1 || isBlocked() || is3dDragging()) {
+        touchState = null;
+        return;
+      }
+      const pt = event.touches[0];
+      const { atTop, atBottom } = boundaryState();
+      touchState = {
+        id: pt.identifier,
+        startX: pt.clientX,
+        startY: pt.clientY,
+        lastY: pt.clientY,
+        startAtTop: atTop,
+        startAtBottom: atBottom,
+        topAnchorY: atTop ? pt.clientY : null,
+        bottomAnchorY: atBottom ? pt.clientY : null,
+        activeDir: 0,
+        pull: 0
+      };
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (event) => {
+      if (!touchState || event.touches.length !== 1 || isBlocked()) {
+        if (touchState) { touchState = null; resetDamping(true); }
+        return;
+      }
+      if (performance.now() < cooldownUntil || is3dDragging()) {
+        touchState = null;
+        resetDamping(true);
+        return;
+      }
+      const pt = [...event.touches].find((item) => item.identifier === touchState.id);
+      if (!pt) { touchState = null; resetDamping(true); return; }
+      const dx = pt.clientX - touchState.startX;
+      const dy = pt.clientY - touchState.startY;
+      const stepDy = pt.clientY - touchState.lastY;
+      touchState.lastY = pt.clientY;
+      if (!touchState.activeDir && Math.abs(dx) > Math.abs(dy) * 1.15 && Math.abs(dx) > 10) {
+        touchState = null;
+        return;
+      }
+      const { atTop, atBottom } = boundaryState();
+      if (atTop && touchState.topAnchorY === null && stepDy >= 0) touchState.topAnchorY = pt.clientY;
+      if (atBottom && touchState.bottomAnchorY === null && stepDy <= 0) touchState.bottomAnchorY = pt.clientY;
+      const topPull = atTop && touchState.topAnchorY !== null ? pt.clientY - touchState.topAnchorY : 0;
+      const bottomPull = atBottom && touchState.bottomAnchorY !== null ? touchState.bottomAnchorY - pt.clientY : 0;
+      if (atTop && topPull > 4 && canStep(-1)) {
+        touchState.activeDir = -1;
+        touchState.pull = Math.max(0, topPull - 4);
+      } else if (atBottom && bottomPull > 4 && canStep(1)) {
+        touchState.activeDir = 1;
+        touchState.pull = Math.max(0, bottomPull - 4);
+      } else if (touchState.activeDir) {
+        const currentPull = touchState.activeDir < 0 ? topPull - 4 : bottomPull - 4;
+        if (currentPull <= 0) {
+          touchState.activeDir = 0;
+          touchState.pull = 0;
+          resetDamping(true);
+          return;
+        }
+        touchState.pull = currentPull;
+      }
+      if (touchState.activeDir) {
+        if (event.cancelable) event.preventDefault();
+        renderDamping(touchState.activeDir, touchState.pull / TOUCH_THRESHOLD, false);
+      }
+    }, { passive: false });
+
+    const finishTouch = (event) => {
+      if (!touchState) return;
+      const { activeDir, pull } = touchState;
+      touchState = null;
+      if (activeDir && event.type === 'touchend' && pull >= TOUCH_THRESHOLD) {
+        commitSectionStep(activeDir);
+      } else if (activeDir) {
+        resetDamping(true);
+      }
+    };
+    document.addEventListener('touchend', finishTouch, { passive: true });
+    document.addEventListener('touchcancel', finishTouch, { passive: true });
+    window.SimoSectionFlow = { current: getCurrentSection, step: commitSectionStep };
+  })();
 
   window.addEventListener('pointermove', (event) => {
     if (event.pointerType === 'mouse') lastMousePointer = { x: event.clientX, y: event.clientY };

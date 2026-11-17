@@ -35,6 +35,20 @@
   --egg-reveal: 0;
 }
 #paper-shelf > .paper-button { z-index: 2; }
+.paper-object[data-paper-state="scroll-1.0000"] .paper-surface-4,
+.paper-object[data-paper-state="scroll-1.0000"] .paper-surface-5 {
+  cursor: grab;
+}
+.paper-object[data-paper-state="scroll-1.0000"] .paper-surface-5 a {
+  cursor: pointer;
+}
+#paper-shelf.is-paper-lifting,
+#paper-shelf.is-paper-lifting .paper-surface {
+  cursor: grabbing;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
 .paper-breeze-ambient-shadow {
   position: absolute;
   left: 2%;

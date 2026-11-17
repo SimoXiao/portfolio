@@ -562,8 +562,8 @@
     const reduce = matchMedia('(prefers-reduced-motion: reduce)');
     const clamp = value => Math.max(0, Math.min(1, value));
     const smooth = value => value * value * (3 - 2 * value);
-    const FULL_PROGRESS = .9999;
-    const DEADZONE_PX = 185;
+    const FULL_PROGRESS = .985;
+    const HOLD_DELAY_MS = 240;
     const panelHeight = window.PaperPortrait.baseHeight / panels.length;
 
     const shadow = document.createElement('span');
@@ -585,18 +585,11 @@
     let previousProgress = -1;
     let previousRaw = -1;
     let settledAt = performance.now();
-    let overscrollAccum = 0;
+    let pullTarget = 0;
     let overscrollLift = 0;
     let eggReveal = 0;
-    let lastInputAt = 0;
-    let lastScrollY = window.scrollY;
-    let lastScrollMoveAt = performance.now();
-    let lastWheelAt = 0;
-    let previousWheelDelta = 0;
-    let unfoldingStream = true;
-    let armedAtBottom = false;
-    let touchY = null;
-    let touchStartedAtBottom = false;
+    let suppressClickUntil = 0;
+    let pointerState = null;
     let lastPullSoundAt = 0;
 
     const progress = () => Number(root.dataset.paperVisualProgress || 0);
@@ -605,14 +598,21 @@
     function available() {
       return visible && root.isConnected && shelf.contains(root) && !root.classList.contains('is-flying') &&
         !reduce.matches && !document.hidden && !document.body.classList.contains('is-booting') &&
-        document.body.dataset.layout !== 'index' && !document.querySelector('dialog[open]') && fullyOpen();
+        !document.body.dataset.section && document.body.dataset.layout !== 'index' &&
+        !document.querySelector('dialog[open]') && fullyOpen();
     }
     function settled(now) {
       return Math.abs(progress() - rawProgress()) < .0003 && now - settledAt > 150;
     }
-    function atBottom(now = performance.now()) {
-      const bottom = Math.max(0, document.documentElement.scrollHeight - innerHeight);
-      return available() && settled(now) && window.scrollY >= bottom - 8;
+    function inLowerHalf(clientY) {
+      const box = shelf.getBoundingClientRect();
+      return box.height > 20 && clientY >= box.top + box.height * .45 && clientY <= box.bottom + 14;
+    }
+    function playRustleOnce() {
+      const now = performance.now();
+      if (now - lastPullSoundAt < 420) return;
+      lastPullSoundAt = now;
+      window.ArchiveSound?.paperRustle(.16);
     }
     function clearEffects() {
       eggReveal = 0;
@@ -629,16 +629,22 @@
         window.PaperPortrait.setProgress(root, progress(), true);
       }
     }
+    function clearPointer() {
+      if (pointerState?.holdTimer) clearTimeout(pointerState.holdTimer);
+      if (pointerState?.id !== undefined) {
+        try { if (shelf.hasPointerCapture?.(pointerState.id)) shelf.releasePointerCapture(pointerState.id); } catch (_) {}
+      }
+      pointerState = null;
+      pullTarget = 0;
+      shelf.classList.remove('is-paper-lifting');
+    }
     function pause() {
       cancelAnimationFrame(frame);
       frame = 0;
       lastStep = 0;
       unfoldedSince = 0;
-      overscrollAccum = overscrollLift = 0;
-      armedAtBottom = false;
-      unfoldingStream = true;
-      touchY = null;
-      touchStartedAtBottom = false;
+      overscrollLift = 0;
+      clearPointer();
       restoreFold();
       clearEffects();
     }
@@ -654,47 +660,10 @@
       if (!frame) frame = requestAnimationFrame(tick);
     }
 
-    function pushOverscroll(delta, isTouch) {
-      const now = performance.now();
-      const previousWheelAt = lastWheelAt;
-      const previousDelta = previousWheelDelta;
-      if (!isTouch && Math.abs(delta) > .8) {
-        lastWheelAt = now;
-        previousWheelDelta = Math.abs(delta);
-      }
-      if (!atBottom(now)) {
-        armedAtBottom = false;
-        unfoldingStream = true;
-        return;
-      }
-      if (isTouch) {
-        if (!touchStartedAtBottom) return;
-        armedAtBottom = true;
-      } else if (!armedAtBottom) {
-        const freshStream = now - previousWheelAt > 300 && now - lastScrollMoveAt > 260;
-        const freshAcceleration = unfoldingStream && previousDelta <= 8 &&
-          delta >= Math.max(28, previousDelta * 2.8 + 18) && now - lastScrollMoveAt > 180;
-        if (!freshStream && !freshAcceleration) return;
-        unfoldingStream = false;
-        armedAtBottom = true;
-      }
-      if (delta > 0) {
-        const wasOverDeadzone = overscrollAccum >= DEADZONE_PX;
-        overscrollAccum = Math.min(760, overscrollAccum + delta * .95);
-        lastInputAt = now;
-        if (!wasOverDeadzone && overscrollAccum >= DEADZONE_PX && now - lastPullSoundAt > 420) {
-          lastPullSoundAt = now;
-          window.ArchiveSound?.paperRustle(.16);
-        }
-      } else if (delta < 0) {
-        overscrollAccum = Math.max(0, overscrollAccum + delta * 1.4);
-      }
-    }
-
     function tick(now) {
       frame = 0;
       if (!available()) { pause(); return; }
-      const activePull = overscrollLift > .001 || overscrollAccum > 0;
+      const activePull = overscrollLift > .001 || pullTarget > 0;
       const interval = activePull ? 20 : 32;
       if (now - lastStep < interval) { frame = requestAnimationFrame(tick); return; }
       const dt = Math.min(60, Math.max(10, lastStep ? now - lastStep : interval));
@@ -705,19 +674,7 @@
         frame = requestAnimationFrame(tick);
         return;
       }
-      if (!atBottom(now)) {
-        overscrollAccum = overscrollLift = 0;
-        armedAtBottom = false;
-        unfoldingStream = true;
-      } else if (!armedAtBottom && now - lastScrollMoveAt > 320 && now - lastWheelAt > 320) {
-        armedAtBottom = true;
-        unfoldingStream = false;
-      }
-      if (now - lastInputAt > 110) {
-        overscrollAccum *= Math.exp(-dt / (overscrollLift > .12 ? 650 : 110));
-        if (overscrollAccum < 1) overscrollAccum = 0;
-      }
-      const targetPull = Math.tanh(Math.max(0, overscrollAccum - DEADZONE_PX) / 260);
+      const targetPull = pullTarget;
       overscrollLift += (targetPull - overscrollLift) * (1 - Math.exp(-dt / 85));
       if (overscrollLift < .001 && targetPull === 0) overscrollLift = 0;
 
@@ -760,39 +717,99 @@
       frame = requestAnimationFrame(tick);
     }
 
-    window.addEventListener('scroll', () => {
-      if (Math.abs(window.scrollY - lastScrollY) > .8) {
-        lastScrollY = window.scrollY;
-        lastScrollMoveAt = performance.now();
+    shelf.addEventListener('pointerdown', event => {
+      if (!event.isTrusted || !available()) return;
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest('a, input, [data-open], .paper-open')) return;
+      if (!inLowerHalf(event.clientY)) return;
+      clearPointer();
+      pointerState = {
+        id: event.pointerId,
+        type: event.pointerType,
+        startX: event.clientX,
+        startY: event.clientY,
+        active: false,
+        holdTimer: 0,
+        soundPlayed: false
+      };
+      if (event.pointerType !== 'mouse') {
+        pointerState.holdTimer = setTimeout(() => {
+          if (!pointerState || !available()) return;
+          pointerState.active = true;
+          pointerState.soundPlayed = true;
+          pullTarget = .88;
+          suppressClickUntil = performance.now() + 450;
+          shelf.classList.add('is-paper-lifting');
+          playRustleOnce();
+          if (typeof navigator.vibrate === 'function' && navigator.userActivation?.hasBeenActive) {
+            try { navigator.vibrate(6); } catch (_) {}
+          }
+          syncMotion();
+        }, HOLD_DELAY_MS);
+      }
+    });
+
+    window.addEventListener('pointermove', event => {
+      if (!pointerState || event.pointerId !== pointerState.id) return;
+      if (!available()) { clearPointer(); return; }
+      const dx = event.clientX - pointerState.startX;
+      const dy = pointerState.startY - event.clientY;
+      if (pointerState.type !== 'mouse') {
+        if (!pointerState.active) {
+          if (Math.hypot(dx, dy) > 10) clearPointer();
+          return;
+        }
+        if (event.cancelable) event.preventDefault();
+        pullTarget = Math.max(.82, Math.min(1, .82 + Math.max(0, dy) / 140));
+        syncMotion();
+        return;
+      }
+      if (!pointerState.active) {
+        if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.25) {
+          clearPointer();
+          return;
+        }
+        if (dy > 8 && dy > Math.abs(dx) * .85) {
+          pointerState.active = true;
+          shelf.classList.add('is-paper-lifting');
+          window.getSelection?.()?.removeAllRanges?.();
+          try { shelf.setPointerCapture(pointerState.id); } catch (_) {}
+        } else return;
+      }
+      if (event.cancelable) event.preventDefault();
+      const norm = Math.max(0, Math.min(1, (dy - 8) / 110));
+      pullTarget = Math.tanh(norm * 1.65);
+      if (pullTarget >= .22 && !pointerState.soundPlayed) {
+        pointerState.soundPlayed = true;
+        playRustleOnce();
       }
       syncMotion();
-    }, { passive: true });
-    window.addEventListener('wheel', event => {
-      if (!event.isTrusted || event.ctrlKey || event.metaKey || Math.abs(event.deltaX) > Math.abs(event.deltaY) * 1.3) return;
-      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? innerHeight * .8 : 1;
-      // A single extreme event cannot skip the deadzone or replace native scrolling.
-      const delta = Math.sign(event.deltaY) * Math.min(110, Math.abs(event.deltaY) * unit);
-      pushOverscroll(delta, false);
-    }, { passive: true });
-    window.addEventListener('touchstart', event => {
-      if (!event.isTrusted || event.touches.length !== 1) { touchY = null; touchStartedAtBottom = false; return; }
-      touchY = event.touches[0].clientY;
-      touchStartedAtBottom = atBottom();
-    }, { passive: true });
-    window.addEventListener('touchmove', event => {
-      if (!event.isTrusted || touchY === null || event.touches.length !== 1) return;
-      const y = event.touches[0].clientY;
-      const delta = touchY - y;
-      touchY = y;
-      if (Math.abs(delta) > .5) pushOverscroll(Math.sign(delta) * Math.min(110, Math.abs(delta) * 1.4), true);
-    }, { passive: true });
-    const endTouch = () => { touchY = null; touchStartedAtBottom = false; };
-    window.addEventListener('touchend', endTouch, { passive: true });
-    window.addEventListener('touchcancel', endTouch, { passive: true });
+    }, { passive: false });
+
+    const endPointer = event => {
+      if (!pointerState) return;
+      if (event && event.type !== 'blur' && event.pointerId !== undefined && event.pointerId !== pointerState.id) return;
+      if (pointerState.active) suppressClickUntil = performance.now() + 450;
+      clearPointer();
+    };
+    window.addEventListener('pointerup', endPointer, { passive: true });
+    window.addEventListener('pointercancel', endPointer, { passive: true });
+    window.addEventListener('blur', endPointer);
+    shelf.addEventListener('click', event => {
+      if (performance.now() < suppressClickUntil) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    }, true);
+    shelf.addEventListener('contextmenu', event => {
+      if (pointerState?.active || shelf.classList.contains('is-paper-lifting')) event.preventDefault();
+    });
+    window.addEventListener('scroll', syncMotion, { passive: true });
 
     const state = new MutationObserver(syncMotion);
     state.observe(root, { attributes: true, attributeFilter: ['data-paper-visual-progress', 'data-paper-raw-progress', 'class'] });
-    state.observe(document.body, { attributes: true, attributeFilter: ['class', 'data-layout'] });
+    state.observe(document.body, { attributes: true, attributeFilter: ['class', 'data-layout', 'data-section'] });
     document.querySelectorAll('dialog').forEach(dialog => state.observe(dialog, { attributes: true, attributeFilter: ['open'] }));
     const intersection = new IntersectionObserver(entries => {
       const entry = entries[entries.length - 1];
@@ -806,9 +823,17 @@
     window.addEventListener('pageshow', syncMotion);
     window.addEventListener('resize', syncMotion, { passive: true });
     window.ArchivePaperBreeze = {
-      diagnostics: () => ({ active: applied, pending: Boolean(frame), visible, fullyOpen: fullyOpen(),
-        armedAtBottom, accumulated: Math.round(overscrollAccum), lift: overscrollLift, eggReveal,
-        deadzone: DEADZONE_PX, reducedMotion: reduce.matches })
+      diagnostics: () => ({
+        active: applied,
+        pending: Boolean(frame),
+        visible,
+        fullyOpen: fullyOpen(),
+        lifting: Boolean(pointerState?.active),
+        pullTarget,
+        lift: overscrollLift,
+        eggReveal,
+        reducedMotion: reduce.matches
+      })
     };
     syncMotion();
   }

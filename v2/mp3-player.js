@@ -6,7 +6,7 @@
     if (!container) return;
 
     container.innerHTML = `
-      <h2 id="about-title" class="sr-only">关于 — 悬挂式 3D MP3 播放器展示</h2>
+      <h2 id="about-title" class="sr-only">Intro — 悬挂式 3D MP3 播放器展示</h2>
       <div class="about-stage-only">
         <div class="mp3-canvas-wrap" id="mp3-canvas-wrap">
           <canvas id="mp3-cluster-canvas" aria-label="三台悬挂式 3D MP3 播放器，可拖拽碰撞甩动并 360 度旋转查看"></canvas>
