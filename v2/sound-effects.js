@@ -390,6 +390,73 @@
       });
     },
 
+    mp3Click(playing = true) {
+      withAudio((audio) => {
+        const t = audio.currentTime;
+        playBodyPulse(audio, {
+          time: t,
+          startFreq: playing ? 360 : 250,
+          endFreq: playing ? 150 : 108,
+          duration: 0.024,
+          gain: 0.24
+        });
+        playNoiseBurst(audio, {
+          time: t,
+          duration: 0.011,
+          freq: playing ? 3400 : 2400,
+          q: 3.0,
+          gain: 0.22
+        });
+      });
+    },
+
+    mp3TrackSwitch(index = 0) {
+      withAudio((audio) => {
+        const t = audio.currentTime;
+        const shift = 1 + (index % 4) * 0.05;
+        playNoiseBurst(audio, { time: t, duration: 0.010, freq: 3100 * shift, q: 2.8, gain: 0.18 });
+        playBodyPulse(audio, { time: t + 0.004, startFreq: 310 * shift, endFreq: 132 * shift, duration: 0.020, gain: 0.16 });
+      });
+    },
+
+    mp3CapSnap(opened = true) {
+      withAudio((audio) => {
+        const t = audio.currentTime;
+        if (opened) {
+          playNoiseBurst(audio, { time: t, duration: 0.018, freq: 2100, q: 2.0, gain: 0.22 });
+          playBodyPulse(audio, { time: t + 0.006, startFreq: 240, endFreq: 380, duration: 0.032, gain: 0.20 });
+        } else {
+          playBodyPulse(audio, { time: t, startFreq: 340, endFreq: 120, duration: 0.026, gain: 0.26 });
+          playNoiseBurst(audio, { time: t + 0.012, duration: 0.012, freq: 3400, q: 3.1, gain: 0.24 });
+        }
+      });
+    },
+
+    mp3Clack(intensity = 0.5) {
+      const nowMs = performance.now();
+      if (nowMs - lastTickAt < 55) return;
+      lastTickAt = nowMs;
+      const amp = Math.max(0.18, Math.min(1, intensity));
+      withAudio((audio) => {
+        const t = audio.currentTime;
+        const pitch = 0.94 + Math.random() * 0.12;
+        playBodyPulse(audio, {
+          time: t,
+          startFreq: 540 * pitch,
+          endFreq: 180 * pitch,
+          duration: 0.022,
+          gain: 0.24 * amp
+        });
+        playNoiseBurst(audio, {
+          time: t,
+          duration: 0.009,
+          freq: 3600 * pitch,
+          q: 3.2,
+          gain: 0.26 * amp
+        });
+      });
+    },
+
     toggleConfirm(turningOn = true) {
       const audio = getAudioGraph();
       if (!audio) return;

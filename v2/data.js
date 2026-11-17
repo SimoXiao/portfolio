@@ -185,14 +185,83 @@ window.PORTFOLIO_DATA = {
       code: 'SIDE C / TOOL 01',
       title: '图片取色工具（插件 + 网站）',
       subtitle: 'Image Color Palette & Extraction',
-      role: '产品设计 & 工具研发',
-      date: '2025 — 进行中',
-      status: '待接入链接',
-      summary: '面向视觉与体验设计师的智能取色工作流，支持从专辑封面或设计稿中提取主色、过滤黑白灰干扰并生成可视化色卡，提供浏览器插件与 Web 端双形态。',
+      role: '规范定义 & 工具研发 · 司末（徐晓强）',
+      date: '2024 — 2025',
+      status: '服务端 2.0 已上线 · 含专利算法 / 能力图谱 / 在线平台',
+      summary: '整合海豚跨端规范、MasterGo 对外能力图谱与自研取色工作台 V2：从客户端 1.0 演进至服务端取色 2.0，通过 VBox 16 代表色二次归类（专利保护）、HSL 多边形黑白过滤与 10 区域输出解决多端色偏与高亮控件识别难题，并封装为在线验证平台与 3 套可调用 AI Skill。',
+      coverImage: 'media/tools/color-picker/thumbs/doc_05.webp',
       cassetteProxy: 'project3',
-      related: ['project3'],
-      tags: ['插件 + Web', 'Palette 提取', '色卡导出', '设计提效'],
-      links: []
+      mediaBase: 'media/tools/color-picker',
+      slidePrefix: 'doc_',
+      slideAspect: '4880 / 2880',
+      slideHeight: 944,
+      slideSizes: {
+        10: [1600, 2635],
+        11: [1600, 2765],
+        12: [1600, 901],
+        13: [1600, 861]
+      },
+      related: ['project3', 'project2', 'talk-player-style'],
+      metrics: [
+        { value: '2.0', label: '服务端取色', note: '云端统一算法下发 · 已申请专利' },
+        { value: '16色', label: '感知主色归类', note: 'VBox 样本按相似色二次聚合' },
+        { value: '10组', label: '内置输出色值', note: '5 区域 × 过滤 / 不过滤黑白' },
+        { value: '3套', label: '取色 Skill', note: '黑胶调色 / 卡片配色 / 批量 JSON' }
+      ],
+      tags: ['服务端 2.0', 'HSL 多边形过滤', '16 点无缝渐变', 'Alpha 遮罩表', 'Web V2 + Skill'],
+      skills: [
+        {
+          badge: '01 / SKILL',
+          title: '黑胶页调色规则',
+          desc: '基于 D dominant 主色执行黑胶播放页背景调色规则：保持 H 色相不变，仅调整 S / L 分量，输出渐变色值、CSS Token 与规则解释。'
+        },
+        {
+          badge: '02 / PRESET',
+          title: '封面卡片配色规则',
+          desc: '将主色、边缘区域色与 16 色调色板直接转换为卡片背景、标题、标签、按钮等一整套界面配色建议，兼顾对比度与氛围统一。'
+        },
+        {
+          badge: '03 / SKILL',
+          title: '底层图片取色能力',
+          desc: '全面支持内外网图片 URL、Cmd+V 粘贴、拖拽与本地上传的批量取色任务，统一返回 10 区域结构化 JSON 与可复制色值。'
+        }
+      ],
+      links: [
+        { label: '在线取色工作台 V2（内网）', url: 'https://cms.qa.igame.163.com/g/pick-color/' },
+        { label: '海豚设计规范文档（内网）', url: 'https://haitun.netease.com/app/5/doc/12/412' },
+        { label: 'MasterGo 取色能力图谱（内网）', url: 'https://mastergo.netease.com/goto/XIyhrnXG' }
+      ],
+      chapters: [
+        {
+          title: '海豚设计规范 · 跨端取色一致性（1.0 → 2.0）',
+          desc: '客户端 1.0 依赖端侧 Palette 易出现多端色偏。服务端 2.0 由云端统一下发（覆盖 iOS / Android / RN / DSL / H5 / TV / 车机 / Pad / PC），将 VBox 16 代表色按相似色二次归类，结合 10 区域输出、polyS / polyL 多边形黑白过滤与 HSL 模型选型，兼顾视觉感知与工程一致性。',
+          slides: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        },
+        {
+          title: '外部对接图谱 · 无缝渐变打点与 UI 识别性',
+          desc: '面向外部设计协作沉淀 MasterGo《取色能力图谱》：定义「16 点二次方打点过渡」消除两色拼接灰带，并通过 H / L 分档 Alpha 遮罩表保障浅色及高亮度封面的 UI 控件识别性。',
+          specCards: [
+            {
+              kicker: '01 · SEAMLESS GRADIENT',
+              title: '16 点二次方打点过渡规则',
+              body: '取封面顶部与底部 20% 区域主色（T / B），中间过渡区均匀分布 16 个停靠点并按二次方曲线（100, 99, 96, 91, 84, 75, 65, 55, 45, 35, 25, 16, 9, 4, 1, 0）配置透明度，避免常规线性渐变中间发灰断层。'
+            },
+            {
+              kicker: '02 · UI LEGIBILITY',
+              title: 'H / L 区间 Alpha 遮罩表',
+              body: '针对 L ≥ 85 的极浅白底封面及 55 ≤ L < 85 的高亮度青绿/黄绿封面，按色相 H 与饱和度 S 自动映射 0.05–0.22 黑色遮罩 Alpha 值，在不压暗画面氛围的前提下保证白色控件可读性。'
+            }
+          ],
+          slides: [10, 11]
+        },
+        {
+          badge: 'WORKBENCH & SKILL',
+          title: '在线工作台 V2 与取色 Skill',
+          desc: '将服务端取色能力封装为内网在线取色工作台 V2 与 3 套可直接调用的 AI Skill（黑胶页调色规则、封面卡片配色规则、底层图片取色能力），全面支持内外网 URL、Cmd+V 粘贴、拖拽与本地上传，并支持实时效果验证与 Figma / CSS Token / JSON 导出。',
+          includeSkills: true,
+          slides: [12, 13]
+        }
+      ]
     },
     {
       id: 'tool-creative-kit',

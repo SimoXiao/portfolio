@@ -27,6 +27,7 @@
     return document.visibilityState === 'visible' &&
       !document.body.classList.contains('is-booting') &&
       !document.body.classList.contains('story-open') &&
+      !document.body.dataset.section &&
       document.body.dataset.layout !== 'index' &&
       !document.querySelector('dialog[open]');
   }
@@ -124,7 +125,7 @@
   window.visualViewport?.addEventListener('resize', refit, { passive: true });
   document.addEventListener('visibilitychange', () => { endTouch(); schedule(); });
   reduce.addEventListener('change', () => { endTouch(); schedule(); });
-  new MutationObserver(schedule).observe(document.body, { attributes: true, attributeFilter: ['class', 'data-layout'] });
+  new MutationObserver(schedule).observe(document.body, { attributes: true, attributeFilter: ['class', 'data-layout', 'data-section'] });
   document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('toggle', schedule));
   const paper = document.querySelector('#paper-shelf .paper-object');
   if (paper) new MutationObserver(schedule).observe(paper, {

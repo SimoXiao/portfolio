@@ -22,7 +22,7 @@
   const cassetteColors = ['#aa594e', '#798b71', '#7b96ac', '#4d534b'];
   const cdThemes = {
     'talk-player-style': { color: '#465666', paper: '#e6e7e6', tray: '#1e2328', trayEdge: '#3a424b', obiBg: '#dfe4e8', obiInk: '#182028', obiRule: 'rgba(24,32,40,.18)', obiVol: 'VOL.01', obiSpecs: ['39 SLIDES', '13 DEMOS'], obiYear: '2024', tape: '2024.04', stamp: true },
-    'tool-color-picker': { color: '#b84b34', tray: '#8f2d20', trayEdge: '#b84231', obiBg: '#c95138', obiInk: '#f8f3eb', obiRule: 'rgba(248,243,235,.28)', obiVol: 'VOL.02', obiSpecs: ['PLUGIN + WEB', 'PALETTE KIT'], obiYear: 'WIP', tape: '2025 · WIP', stamp: false },
+    'tool-color-picker': { color: '#b84b34', paper: '#ece9e4', tray: '#8f2d20', trayEdge: '#b84231', obiBg: '#c95138', obiInk: '#f8f3eb', obiRule: 'rgba(248,243,235,.28)', obiVol: 'VOL.02', obiSpecs: ['PLUGIN + WEB', 'PALETTE KIT'], obiYear: 'WIP', tape: '2025 · WIP', stamp: false },
     'tool-creative-kit': { color: '#3c5a48', tray: '#24392e', trayEdge: '#3c5e4c', obiBg: '#d2dcd0', obiInk: '#17251d', obiRule: 'rgba(23,37,29,.18)', obiVol: 'VOL.03', obiSpecs: ['AI + MOTION', 'DESIGN LAB'], obiYear: 'LAB', tape: 'LAB · 2025', stamp: false }
   };
   const mixColor = (from, to, amount) => '#' + [1, 3, 5].map((offset) => Math.round(
@@ -68,7 +68,7 @@
     };
   });
   const allEntries = [...items, ...explorations];
-  const talkSlidePath = (item, page) => `${item.mediaBase}/slides/slide_${pad(page)}.webp`;
+  const explorationSlidePath = (item, page, dir = 'slides') => `${item.mediaBase}/${dir}/${item.slidePrefix || 'slide_'}${pad(page)}.webp`;
   const story = $('#story-dialog');
   const lightbox = $('#image-dialog');
   const access = $('#access-dialog');
@@ -373,8 +373,8 @@
       schedule3d();
     });
     slot.addEventListener('pointerdown', (event) => {
-      if (event.button !== 0) return;
-      drag = { x: event.clientX, y: event.clientY, yaw: targetYaw, pitch: targetPitch, pointerId: event.pointerId };
+      if (event.pointerType === 'touch' || event.button !== 0) return;
+      drag = { x: event.clientX, y: event.clientY, yaw: targetYaw, pitch: targetPitch, pointerId: event.pointerId, pointerType: event.pointerType };
       lastTickAngle = targetYaw;
       dragged = false;
       targetLift = 1;
@@ -386,10 +386,11 @@
     });
     const endDrag = () => {
       if (!drag) return;
+      const wasTouch = drag.pointerType === 'touch';
       try { slot.releasePointerCapture(drag.pointerId); } catch (_) {}
       drag = null;
       jewel?.classList.remove('is-dragging');
-      if (!slot.matches(':hover')) {
+      if (wasTouch || !slot.matches(':hover')) {
         slot.classList.remove('is-hovered');
         targetYaw = 0; targetPitch = 0; targetLift = 0;
         schedule3d();
@@ -456,6 +457,7 @@
       hoverSound: true,
       onClick: () => {
         const next = !slot.classList.contains('is-cased');
+        if (!next) slot.classList.remove('is-hovered');
         updateCaseState(next);
         window.ArchiveSound?.cdCaseSnap?.(idx, next);
       }
@@ -502,11 +504,17 @@
 
   function talkFigure(page, item, chapterTitle, pptNum, overlays) {
     const hasOverlays = Boolean(overlays?.length);
-    const src = hasOverlays ? `${item.mediaBase}/slides/slide_${pad(page)}_frame.webp` : talkSlidePath(item, page);
+    const src = hasOverlays ? `${item.mediaBase}/slides/slide_${pad(page)}_frame.webp` : explorationSlidePath(item, page);
     const overlayHtml = overlays?.length
       ? overlays.map((ov) => `<video class="slide-phone-video" style="left:${ov.left};top:${ov.top};width:${ov.width};height:${ov.height}" src="${escape(ov.src)}" autoplay loop muted playsinline preload="metadata"></video>`).join('')
       : '';
-    return `<figure class="slide"><div class="slide-stage${hasOverlays ? ' has-overlays' : ''}">${overlayHtml}<button class="slide-button" type="button" data-page="${page}" aria-label="放大查看${escape(item.name)}，第 ${pptNum} 页"><img draggable="false" src="${src}" width="1600" height="900" loading="lazy" decoding="async" alt="${escape(item.name)} · ${escape(chapterTitle)} · 第 ${pptNum} 页"></button></div><figcaption><span>${escape(chapterTitle)} / P.${pad(pptNum)}</span></figcaption></figure>`;
+    const customSize = item.slideSizes?.[page];
+    const w = customSize ? customSize[0] : 1600;
+    const h = customSize ? customSize[1] : (item.slideHeight || 900);
+    const aspect = customSize ? `${w} / ${h}` : item.slideAspect;
+    const btnClass = aspect ? 'slide-button is-native-ratio' : 'slide-button';
+    const aspectStyle = aspect ? ` style="--slide-aspect:${aspect}"` : '';
+    return `<figure class="slide"><div class="slide-stage${hasOverlays ? ' has-overlays' : ''}">${overlayHtml}<button class="${btnClass}"${aspectStyle} type="button" data-page="${page}" aria-label="放大查看${escape(item.name)}，第 ${pptNum} 页"><img draggable="false" src="${src}" width="${w}" height="${h}" loading="lazy" decoding="async" alt="${escape(item.name)} · ${escape(chapterTitle)} · 第 ${pptNum} 页"></button></div><figcaption><span>${escape(chapterTitle)} / P.${pad(pptNum)}</span></figcaption></figure>`;
   }
 
   function relatedSection(item) {
@@ -526,7 +534,7 @@
   }
 
   function renderExploration(item) {
-    if (item.kind === 'tool') {
+    if (!item.chapters?.length) {
       const tagsHtml = item.tags?.length ? `<h3 class="story-section-heading">核心能力规划</h3><div class="tags">${item.tags.map((tag) => `<span>${escape(tag)}</span>`).join('')}</div>` : '';
       const linksHtml = item.links?.length
         ? `<div class="profile-contact">${item.links.map((link) => `<a href="${escape(link.url)}" target="_blank" rel="noopener">${escape(link.label)} ↗</a>`).join('')}</div>`
@@ -536,21 +544,43 @@
     }
 
     const metricsHtml = item.metrics?.length ? `<div class="metrics" aria-label="分享概览">${item.metrics.map((metric) => `<div><span class="metric-value">${metricValue(metric.value)}</span><span class="metric-label">${escape(metric.label)}</span><span class="metric-note">${escape(metric.note)}</span></div>`).join('')}</div>` : '';
-    const chapterNavHtml = `<nav class="chapter-nav" aria-label="分享章节">${item.chapters.map((chapter, index) => `<a href="#${item.id}-chapter-${index}" data-chapter="${index}">${escape(chapter.title)} <span aria-hidden="true">↘</span></a>`).join('')}</nav>`;
+    const hasInlineSkills = item.chapters.some((chapter) => chapter.includeSkills);
+    const skillsChapterLink = item.skills?.length && !hasInlineSkills ? `<a href="#${item.id}-skills" data-chapter-id="${item.id}-skills">在线工作台 V2 与取色 Skill <span aria-hidden="true">↘</span></a>` : '';
+    const chapterNavHtml = `<nav class="chapter-nav" aria-label="内容章节">${item.chapters.map((chapter, index) => `<a href="#${item.id}-chapter-${index}" data-chapter="${index}">${escape(chapter.title)} <span aria-hidden="true">↘</span></a>`).join('')}${skillsChapterLink}</nav>`;
+    const defaultBadge = item.kind === 'talk' ? 'KEYNOTE' : 'TOOL SPEC';
+    const skillsMarkup = item.skills?.length
+      ? `<div class="skill-grid">${item.skills.map((sk) => `<article class="skill-card"><span class="skill-badge">${escape(sk.badge)}</span><h4>${escape(sk.title)}</h4><p>${escape(sk.desc)}</p></article>`).join('')}</div>${item.links?.length ? `<div class="profile-contact">${item.links.map((link) => `<a href="${escape(link.url)}" target="_blank" rel="noopener">${escape(link.label)} ↗</a>`).join('')}</div>` : ''}`
+      : '';
     let pptCursor = 0;
     const chaptersHtml = item.chapters.map((chapter, index) => {
       const slidesHtml = (chapter.slides || []).map((page) => {
         pptCursor += 1;
         return talkFigure(page, item, chapter.title, pptCursor, chapter.slideOverlays?.[page]);
       }).join('');
-      return `<section class="gallery-chapter" id="${item.id}-chapter-${index}" aria-labelledby="${item.id}-heading-${index}"><div class="chapter-heading"><span>${pad(index + 1)} / KEYNOTE</span><h3 id="${item.id}-heading-${index}">${escape(chapter.title)}</h3><span>${chapter.slides.length} SLIDES</span></div>${chapter.desc ? `<p class="chapter-desc">${escape(chapter.desc)}</p>` : ''}${slidesHtml}</section>`;
+      const specHtml = chapter.specCards?.length
+        ? `<div class="spec-cards">${chapter.specCards.map((card) => `<article class="spec-card"><span>${escape(card.kicker)}</span><h4>${escape(card.title)}</h4><p>${escape(card.body)}</p></article>`).join('')}</div>`
+        : '';
+      const inlineSkillsHtml = chapter.includeSkills ? skillsMarkup : '';
+      const chapterBadge = chapter.badge || defaultBadge;
+      const slideUnit = item.kind === 'talk' ? 'SLIDES' : 'FIGS';
+      const countBadge = chapter.includeSkills && item.skills?.length
+        ? `${chapter.slides?.length ? `${chapter.slides.length} ${slideUnit} · ` : ''}${item.skills.length} SKILLS`
+        : (chapter.slides?.length ? `${chapter.slides.length} ${slideUnit}` : 'WORKBENCH');
+      return `<section class="gallery-chapter" id="${item.id}-chapter-${index}" aria-labelledby="${item.id}-heading-${index}"><div class="chapter-heading"><span>${pad(index + 1)} / ${escape(chapterBadge)}</span><h3 id="${item.id}-heading-${index}">${escape(chapter.title)}</h3><span>${countBadge}</span></div>${chapter.desc ? `<p class="chapter-desc">${escape(chapter.desc)}</p>` : ''}${specHtml}${slidesHtml}${inlineSkillsHtml}</section>`;
     }).join('');
+    const skillsHtml = item.skills?.length && !hasInlineSkills
+      ? `<section class="gallery-chapter" id="${item.id}-skills" aria-labelledby="${item.id}-skills-heading"><div class="chapter-heading"><span>${pad(item.chapters.length + 1)} / WORKBENCH & SKILL</span><h3 id="${item.id}-skills-heading">在线工作台 V2 与取色 Skill</h3><span>${item.skills.length} SKILLS</span></div><p class="chapter-desc">内置服务端取色能力已封装为内网在线校验台与 3 套可直接调用的 AI Skill（黑胶页调色、封面卡片配色、底层 JSON 批量提取），兼顾 URL / 粘贴 / 上传全链路输入。</p>${skillsMarkup}</section>`
+      : '';
 
-    $('#story-body').innerHTML = `<p class="story-subtitle">${escape(item.subtitle)}</p><p class="story-summary">${escape(item.summary)}</p><div class="story-facts"><div><span class="fact-label">OCCASION</span>${escape(item.role)}</div>${item.date ? `<div><span class="fact-label">DATE</span>${escape(item.date)}</div>` : ''}</div>${metricsHtml}${chapterNavHtml}<div class="full-gallery">${chaptersHtml}</div>${relatedSection(item)}${endNavigation(item)}`;
+    const factFirstLabel = item.kind === 'talk' ? 'OCCASION' : 'ROLE';
+    const factSecondLabel = item.kind === 'talk' ? 'DATE' : 'STATUS';
+    const factSecondValue = item.kind === 'talk' ? item.date : (item.status || item.date);
+    $('#story-body').innerHTML = `<p class="story-subtitle">${escape(item.subtitle)}</p><p class="story-summary">${escape(item.summary)}</p><div class="story-facts"><div><span class="fact-label">${factFirstLabel}</span>${escape(item.role)}</div>${factSecondValue ? `<div><span class="fact-label">${factSecondLabel}</span>${escape(factSecondValue)}</div>` : ''}</div>${metricsHtml}${chapterNavHtml}<div class="full-gallery">${chaptersHtml}${skillsHtml}</div>${relatedSection(item)}${endNavigation(item)}`;
 
-    $$('[data-chapter]', story).forEach((link) => link.addEventListener('click', (event) => {
+    $$('[data-chapter], [data-chapter-id]', story).forEach((link) => link.addEventListener('click', (event) => {
       event.preventDefault();
-      $(`#${item.id}-chapter-${link.dataset.chapter}`, story)?.scrollIntoView({ behavior: reducedMotion.matches ? 'instant' : 'smooth', block: 'start' });
+      const targetId = link.dataset.chapterId || `${item.id}-chapter-${link.dataset.chapter}`;
+      $(`#${targetId}`, story)?.scrollIntoView({ behavior: reducedMotion.matches ? 'instant' : 'smooth', block: 'start' });
     }));
   }
 
@@ -684,6 +714,20 @@
     } else reveal();
   }
 
+  function showAbout(route = true) {
+    const reveal = () => {
+      document.body.dataset.section = 'about';
+      if (route) history.replaceState({ portfolioSection: 'about' }, '', '#about');
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      updateHeaderShade();
+    };
+    if (story.open) {
+      const closing = closeStory();
+      const revision = viewRevision;
+      closing.then(() => { if (revision === viewRevision && !story.open) reveal(); });
+    } else reveal();
+  }
+
   function revealAbout(route = true, hash = 'about', instant = false) {
     const reveal = () => {
       delete document.body.dataset.section;
@@ -711,7 +755,11 @@
   function openItem(id, trigger, route = true) {
     const item = allEntries.find((entry) => entry.id === id);
     if (!item || !authenticated) return;
-    if (id === 'about') { revealAbout(route); return; }
+    if (id === 'about') {
+      if (trigger?.closest?.('#rack, #shelf-index, .archive-player')) revealAbout(false);
+      else showAbout(route);
+      return;
+    }
     const wasOpen = story.open;
     const wasClosing = Boolean(closingPromise);
     if (wasOpen && activeItem?.id === id && !closingPromise && scene.phase !== 'closing') {
@@ -833,6 +881,10 @@
   function syncRoute() {
     const id = location.hash.slice(1);
     if (['contact', 'experience'].includes(id)) { revealAbout(false, id); return; }
+    if (id === 'about') {
+      showAbout(false);
+      return;
+    }
     if (id === 'explore') {
       showExplore(false);
       return;
@@ -845,6 +897,7 @@
       openItem(id, null, false);
     } else {
       if (history.state?.portfolioSection === 'explore') { showExplore(false); return; }
+      if (history.state?.portfolioSection === 'about') { showAbout(false); return; }
       delete document.body.dataset.section;
       if (['shelf', 'index'].includes(history.state?.portfolioLayout)) applyCollectionLayout(history.state.portfolioLayout);
       closeStory();
@@ -862,11 +915,10 @@
     initialViewFrame = 0;
     if (!initialViewPending || !authenticated) return;
     const id = location.hash.slice(1);
-    if (['about', 'contact', 'experience'].includes(id)) {
+    if (['contact', 'experience'].includes(id)) {
       // Resolve the actual unfolded end after fonts and the mobile viewport fit.
       if (!story.open) revealAbout(false, id, true);
-    } else if (!story.open && !items.some((item) => item.id === id)) {
-    } else if (!story.open && !allEntries.some((item) => item.id === id) && id !== 'explore') {
+    } else if (!story.open && !allEntries.some((item) => item.id === id) && id !== 'explore' && id !== 'about') {
       select(0, false, true);
       window.scrollTo({ top: 0, behavior: 'instant' });
       scene.updatePaperScroll();
@@ -930,7 +982,7 @@
   }
 
   function showImage(page) {
-    const pages = activeItem?.gallery || (activeItem?.kind === 'talk' ? activeItem.chapters.flatMap((c) => c.slides || []) : null);
+    const pages = activeItem?.gallery || (activeItem?.chapters ? activeItem.chapters.flatMap((c) => c.slides || []) : null);
     if (!pages?.length) return;
     imagePages = pages;
     imageIndex = Math.max(0, imagePages.indexOf(page));
@@ -942,9 +994,9 @@
     const page = imagePages[imageIndex];
     const image = $('#full-image');
     setImageZoom(false);
-    image.src = activeItem.kind === 'talk' ? talkSlidePath(activeItem, page) : fullPagePath(page);
+    image.src = activeItem.mediaBase ? explorationSlidePath(activeItem, page) : fullPagePath(page);
     image.alt = `${activeItem.name}，第 ${page} 页大图`;
-    $('#image-view-title').textContent = `${activeItem.name} / ${activeItem.kind === 'talk' ? 'SLIDE' : 'P.'} ${pad(page)}`;
+    $('#image-view-title').textContent = `${activeItem.name} / ${activeItem.kind === 'talk' ? 'SLIDE' : activeItem.mediaBase ? 'FIG.' : 'P.'} ${pad(page)}`;
     $('#image-counter').textContent = `${pad(imageIndex + 1)} / ${pad(imagePages.length)}`;
     $('#image-prev').disabled = imageIndex === 0;
     $('#image-next').disabled = imageIndex === imagePages.length - 1;
@@ -991,6 +1043,15 @@
     event.preventDefault();
     showExplore(true);
   }));
+  $$('[data-about-nav]').forEach((link) => link.addEventListener('click', (event) => {
+    event.preventDefault();
+    showAbout(true);
+  }));
+  window.SimoOpenPersonalPaper = () => {
+    if (!authenticated) return;
+    history.pushState({ portfolioSection: 'paper', fromMp3: true }, '', '#experience');
+    revealAbout(false, 'experience', false);
+  };
   $$('[data-explore-filter]').forEach((button) => button.addEventListener('click', () => {
     exploreFilter = button.dataset.exploreFilter;
     $$('[data-explore-filter]').forEach((btn) => btn.setAttribute('aria-pressed', String(btn === button)));

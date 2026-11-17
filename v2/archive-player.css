@@ -12,8 +12,8 @@
   height: calc(var(--archive-player-height) + var(--archive-player-safe-bottom));
   padding: 0 max(22px, calc((100vw - 1100px) / 2)) var(--archive-player-safe-bottom);
   color: var(--player-ink);
-  background: #f1f1e9;
-  border-top: 1px solid #d5d8cd;
+  background: #ecebe7;
+  border-top: 1px solid #d4d3cc;
   box-shadow: 0 -3px 15px #35442d05, inset 0 1px #fff9;
   font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
 }
@@ -66,7 +66,7 @@ body.is-booting .archive-player, body:has(#access-dialog[open]) .archive-player 
 .archive-player-queue-toggle[aria-expanded=true] { background: #e2e7d8; color: #43583d; }
 .archive-player-progress { position: absolute; inset: -1px 0 auto; height: 2px; pointer-events: none; }
 .archive-player-progress > span { display: block; width: var(--archive-reading-progress,0%); height: 100%; background: #81946e; }
-.archive-player-queue { position: absolute; z-index: 2; bottom: calc(100% + 12px); right: 0; width: min(340px,calc(100vw - 44px)); padding: 16px 12px 10px; border: 1px solid #ccd2c2; border-radius: 6px; background: #f6f6ee; box-shadow: 0 6px 26px #374a2e16, inset 0 1px #fff; }
+.archive-player-queue { position: absolute; z-index: 2; bottom: calc(100% + 12px); right: 0; width: min(340px,calc(100vw - 44px)); padding: 16px 12px 10px; border: 1px solid #cccbc3; border-radius: 6px; background: #efeee9; box-shadow: 0 6px 26px #374a2e16, inset 0 1px #fff; }
 .archive-player-queue[hidden] { display: none!important; }
 .archive-player-queue-heading { display: flex; justify-content: space-between; align-items: baseline; margin: 0 9px 10px; color: #66715f; font-size: 11px; }
 .archive-player-queue-count { color: #87907f; font: 8px/1.5 ui-monospace,monospace; letter-spacing: .05em; }

@@ -6,7 +6,7 @@
   const definitions = [
     { selector: '[data-collection]', key: 'works', label: '作品', kind: 'cassette', variant: 'navigation' },
     { selector: '[data-explore-nav]', key: 'explore', label: '探索', kind: 'explore', variant: 'navigation' },
-    { selector: '[data-open="about"]', key: 'about', label: '关于', kind: 'paper', variant: 'navigation' },
+    { selector: '[data-about-nav], [data-open="about"]', key: 'about', label: '关于', kind: 'paper', variant: 'navigation' },
     { selector: '[href="#contact"]', key: 'contact', label: '联系', kind: 'envelope' }
   ];
   const entries = definitions.map((definition) => {
@@ -52,10 +52,14 @@
       mark('explore');
       return;
     }
+    if (document.body.dataset.section === 'about') {
+      mark('about');
+      return;
+    }
     const box = about?.getBoundingClientRect();
     const atAbout = box && box.top <= innerHeight * .35 && box.bottom > 144;
     if (intent && performance.now() < intent.until) {
-      const arrived = intent.key === 'works' ? !atAbout && scrollY < 30 : atAbout;
+      const arrived = intent.key === 'works' ? !atAbout && scrollY < 30 : intent.key === 'contact' ? atAbout : false;
       if (arrived) intent = null;
       else { mark(intent.key); return; }
     } else intent = null;
