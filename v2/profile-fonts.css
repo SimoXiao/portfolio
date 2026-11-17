@@ -64,8 +64,8 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("assets/fonts/montserrat-500-normal-metrics.woff2?v=ae3a29fc1b9c") format("woff2");
-  unicode-range: U+25,U+2B,U+2E,U+30-38,U+4F-50,U+54,U+57,U+69,U+6D-6E,U+70,U+73-74;
+  src: url("assets/fonts/montserrat-500-normal-metrics.woff2?v=20261117") format("woff2");
+  unicode-range: U+25,U+2B,U+2E,U+30-39,U+4F-50,U+54,U+57,U+69,U+6D-6E,U+70,U+73-74;
 }
 
 /* Keep the profile's existing sizes, leading, spacing and paper geometry. */

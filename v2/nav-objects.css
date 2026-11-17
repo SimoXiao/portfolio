@@ -67,6 +67,16 @@
   72% { transform: translateY(-1px) rotate(2deg) scale(1.04); }
 }
 .header-nav > a:is(:hover,:focus-visible) [data-micro-kind=cassette][data-micro-variant=navigation] .micro-fallback-image { animation: nav-cassette-lift .84s cubic-bezier(.22,.72,.18,1); }
+/* The compass shares the existing 3D object renderer and interaction timing. */
+.header-nav.has-micro-nav [data-micro-kind=explore]:empty::before {
+  background-image: url('assets/objects/explore-compass.svg');
+}
+.header-nav.has-micro-nav [data-micro-kind=explore] .micro-object-canvas,
+.header-nav.has-micro-nav [data-micro-kind=explore] .micro-fallback-image,
+.header-nav.has-micro-nav [data-micro-kind=explore]:empty::before {
+  transform: scale(.82) translateY(1.5px);
+  transform-origin: center center;
+}
 .header-nav.has-micro-nav .nav-object-label { position: relative; display: block; font-size: 12px; line-height: 1.4; }
 .header-nav.has-micro-nav .nav-object-label::after {
   content: '';

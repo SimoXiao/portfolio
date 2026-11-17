@@ -20,6 +20,11 @@
   const microObject = (kind, className = '') => `<span class="micro-object ${className}" data-micro-kind="${kind}" data-micro-entry="once" aria-hidden="true"></span>`;
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const cassetteColors = ['#aa594e', '#798b71', '#7b96ac', '#4d534b'];
+  const cdThemes = {
+    'talk-player-style': { color: '#465666', paper: '#e6e7e6', tray: '#1e2328', trayEdge: '#3a424b', obiBg: '#dfe4e8', obiInk: '#182028', obiRule: 'rgba(24,32,40,.18)', obiVol: 'VOL.01', obiSpecs: ['39 SLIDES', '13 DEMOS'], obiYear: '2024', tape: '2024.04', stamp: true },
+    'tool-color-picker': { color: '#b84b34', tray: '#8f2d20', trayEdge: '#b84231', obiBg: '#c95138', obiInk: '#f8f3eb', obiRule: 'rgba(248,243,235,.28)', obiVol: 'VOL.02', obiSpecs: ['PLUGIN + WEB', 'PALETTE KIT'], obiYear: 'WIP', tape: '2025 · WIP', stamp: false },
+    'tool-creative-kit': { color: '#3c5a48', tray: '#24392e', trayEdge: '#3c5e4c', obiBg: '#d2dcd0', obiInk: '#17251d', obiRule: 'rgba(23,37,29,.18)', obiVol: 'VOL.03', obiSpecs: ['AI + MOTION', 'DESIGN LAB'], obiYear: 'LAB', tape: 'LAB · 2025', stamp: false }
+  };
   const mixColor = (from, to, amount) => '#' + [1, 3, 5].map((offset) => Math.round(
     parseInt(from.slice(offset, offset + 2), 16) * (1 - amount) + parseInt(to.slice(offset, offset + 2), 16) * amount
   ).toString(16).padStart(2, '0')).join('');
@@ -48,12 +53,30 @@
     { id: 'about', title: '关于我', name: '关于我', subtitle: 'Xu Xiaoqiang / Simo', code: 'PERSONAL NOTES / FOLDOUT 01', color: '#e7dcc4', ink: '#4a483b', material: 'ivory', pose: -.3, paper: '#f0ede5', accent: '#71664e' },
 
   ];
+  const explorations = (data.explorations || []).map((entry) => {
+    const theme = cdThemes[entry.id] || cdThemes['talk-player-style'];
+    const themed = readerTheme(theme.color);
+    if (theme.paper) {
+      themed.paper = theme.paper;
+      themed.line = `color-mix(in srgb, ${theme.paper} 82%, ${themed.accent})`;
+    }
+    return {
+      ...entry,
+      name: entry.title,
+      cdTheme: theme,
+      ...themed
+    };
+  });
+  const allEntries = [...items, ...explorations];
+  const talkSlidePath = (item, page) => `${item.mediaBase}/slides/slide_${pad(page)}.webp`;
   const story = $('#story-dialog');
   const lightbox = $('#image-dialog');
   const access = $('#access-dialog');
   let selected = 0;
   let pinnedSelection = false;
   let activeItem = null;
+  let exploreFilter = 'all';
+  let exploreSelected = 0;
   let opener = null;
   let returnScroll = 0;
   let ownsHistoryEntry = false;
@@ -155,17 +178,376 @@
 
   function renderProjects() {
     $('#project-list').innerHTML = data.projects.map((project) => `<article class="project-row" style="--row-color:${project.color}"><span class="row-number">${project.track}</span><div class="row-media"><img draggable="false" src="${pagePath(project.cover, 'thumbs')}" width="800" height="450" loading="lazy" decoding="async" alt="${escape(project.title)}作品预览"></div><div class="row-body"><span class="row-kicker">SIDE ${project.side} / ${escape(project.subtitle)}</span><h3><a class="row-link" href="#${project.id}" data-open="${project.id}">${escape(project.title)}</a></h3><p>${escape(project.summary)}</p><div class="row-meta"><span>${escape(project.role)}</span><span>${project.metrics[0] ? `${escape(project.metrics[0].value)} ${escape(project.metrics[0].label)} · ${escape(project.metrics[0].note)}` : ''}</span></div></div><span class="row-arrow" aria-hidden="true">↗</span></article>`).join('');
-    $('#story-index').innerHTML = items.map((item) => `<button type="button" data-story-item="${item.id}" aria-current="false"><span><span class="index-dash" aria-hidden="true"></span>${escape(item.name)}</span><span aria-hidden="true">↗</span></button>`).join('');
-    $$('#story-index button').forEach((button) => button.addEventListener('click', () => openItem(button.dataset.storyItem, button)));
+    renderStoryIndex(items);
+    renderExplore();
+  }
+
+  function renderStoryIndex(pool) {
+    const key = pool.map((entry) => entry.id).join('|');
+    const indexEl = $('#story-index');
+    if (indexEl.dataset.poolKey === key) return;
+    indexEl.dataset.poolKey = key;
+    indexEl.innerHTML = pool.map((entry) => `<button type="button" data-story-item="${entry.id}" aria-current="false"><span><span class="index-dash" aria-hidden="true"></span>${escape(entry.name)}</span><span aria-hidden="true">↗</span></button>`).join('');
+    $$('#story-index button', indexEl).forEach((button) => button.addEventListener('click', () => openItem(button.dataset.storyItem, button)));
+  }
+
+  function cdJewelMarkup(entry, { includeDiscBack = false } = {}) {
+    const theme = entry.cdTheme || cdThemes[entry.id] || cdThemes['talk-player-style'];
+    const backList = entry.chapters
+      ? entry.chapters.slice(0, 4).map((c, ci) => `<li><span>0${ci + 1}.</span><span>${escape(c.title)}</span></li>`).join('')
+      : (entry.tags || []).slice(0, 4).map((t, ti) => `<li><span>0${ti + 1}.</span><span>${escape(t)}</span></li>`).join('');
+    const lidStampHtml = theme.stamp
+      ? `<span class="jewel-lid-stamp"><span class="stamp-row"><i>K</i><b>KEYNOTE</b></span><small>39 SLIDES</small></span>`
+      : '';
+    return `
+      <span class="jewel-shadow" aria-hidden="true"></span>
+      <span class="cd-jewel" aria-hidden="true">
+        <span class="jewel-wall jewel-wall-top"></span>
+        <span class="jewel-wall jewel-wall-bottom"></span>
+        <span class="jewel-wall jewel-wall-left"></span>
+        <span class="jewel-wall jewel-wall-right"></span>
+        <span class="jewel-back">
+          <span class="back-paper">
+            <span class="back-head">
+              <span>${escape(entry.code)}</span>
+              <span>${escape(entry.date || entry.status || '2025')}</span>
+            </span>
+            <strong class="back-title">${escape(entry.title)}</strong>
+            <ol class="back-tracks">${backList}</ol>
+            <span class="back-foot">
+              <span class="back-pill">${escape(entry.track)}</span>
+              <i class="back-barcode"></i>
+            </span>
+          </span>
+        </span>
+        <span class="jewel-spine">
+          <span>CD-R · ${escape(entry.track)}</span>
+        </span>
+        <span class="jewel-hinge-pillar"></span>
+        <span class="jewel-tray">
+          <span class="jewel-clip tl"></span>
+          <span class="jewel-clip tr"></span>
+          <span class="jewel-clip bl"></span>
+          <span class="jewel-clip br"></span>
+          <span class="jewel-rail-top"></span>
+          <span class="jewel-rail-bottom"></span>
+          <span class="jewel-rail-right"></span>
+          <span class="jewel-disc">
+            <span class="jewel-disc-front">
+              <span class="jewel-disc-grooves"></span>
+              <span class="jewel-disc-sheen"></span>
+            </span>
+            <span class="jewel-disc-edge"></span>
+            <span class="jewel-disc-back"></span>
+          </span>
+          <span class="jewel-disc-ring"></span>
+          <span class="jewel-rosette"></span>
+        </span>
+        <span class="jewel-lid">
+          <span class="lid-wall lid-wall-top"></span>
+          <span class="lid-wall lid-wall-bottom"></span>
+          <span class="lid-wall lid-wall-right"></span>
+          <span class="lid-wall lid-wall-left"></span>
+          <span class="lid-inner-face"></span>
+          <span class="jewel-lid-rail top"></span>
+          <span class="jewel-lid-rail bottom"></span>
+          <span class="jewel-lid-rail right"></span>
+          <span class="jewel-obi">
+            <span class="obi-head">
+              <span class="obi-band"><span>${escape(theme.obiVol)}</span><span>${escape(entry.kind === 'talk' ? 'TALK' : 'TOOL')}</span></span>
+              <span class="obi-top">${escape(entry.kindLabel)}</span>
+            </span>
+            <span class="obi-main">
+              <strong class="obi-title">${escape(entry.title)}</strong>
+              <span class="obi-sub">${escape(entry.subtitle)}</span>
+            </span>
+            <span class="obi-specs">
+              <span class="obi-spec-lines">
+                <span>${escape(theme.obiSpecs?.[0] || '')}</span>
+                <span>${escape(theme.obiSpecs?.[1] || '')}</span>
+              </span>
+              <svg class="obi-target" viewBox="0 0 16 16" aria-hidden="true">
+                <circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.15" />
+                <circle cx="8" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.05" />
+                <circle cx="8" cy="8" r="1.05" fill="currentColor" />
+              </svg>
+            </span>
+            <span class="obi-foot">
+              <span class="obi-code">${escape(entry.track)}</span>
+              <span class="obi-mark">${escape(theme.obiYear)}</span>
+            </span>
+          </span>
+          ${lidStampHtml}
+          <span class="jewel-lid-tape">${escape(theme.tape)}</span>
+          <span class="jewel-glare"></span>
+        </span>
+      </span>`;
+  }
+
+  function bindCd3d(slot, { cdIndex = 0, hoverSound = true, onClick } = {}) {
+    const jewel = $('.cd-jewel', slot);
+    const shadow = $('.jewel-shadow', slot);
+    let drag = null;
+    let yaw = 0;
+    let pitch = 0;
+    let targetYaw = 0;
+    let targetPitch = 0;
+    let lift = 0;
+    let targetLift = 0;
+    let dragged = false;
+    let lastTickAngle = 0;
+    let rafId = 0;
+    const apply3d = () => {
+      if (!jewel) return;
+      const tz = lift * 22;
+      const ty = lift * -5;
+      const rx = 6 * (1 - lift) + pitch;
+      jewel.style.transform = `translate3d(0, ${ty.toFixed(2)}px, ${tz.toFixed(2)}px) rotateX(${rx.toFixed(2)}deg) rotateY(${yaw.toFixed(2)}deg)`;
+      if (shadow) {
+        const rad = (yaw * Math.PI) / 180;
+        const cosY = Math.abs(Math.cos(rad));
+        const sx = Math.sin(rad) * -6;
+        const sy = lift * 8 + pitch * 0.16;
+        const scaleX = (0.28 + 0.72 * cosY) * (1 + lift * 0.02);
+        const scaleY = 1 + lift * 0.02;
+        shadow.style.transform = `translate3d(${sx.toFixed(2)}px, ${sy.toFixed(2)}px, 0) scale(${scaleX.toFixed(3)}, ${scaleY.toFixed(3)})`;
+      }
+    };
+    const step3d = () => {
+      rafId = 0;
+      const ease = drag ? 0.55 : 0.24;
+      yaw += (targetYaw - yaw) * ease;
+      pitch += (targetPitch - pitch) * ease;
+      lift += (targetLift - lift) * ease;
+      apply3d();
+      const settled = !drag && !slot.classList.contains('is-hovered')
+        && Math.abs(targetYaw - yaw) < 0.04
+        && Math.abs(targetPitch - pitch) < 0.04
+        && Math.abs(targetLift - lift) < 0.01;
+      if (settled) {
+        yaw = 0; pitch = 0; lift = 0;
+        jewel?.classList.remove('is-interactive');
+        jewel?.style.removeProperty('transform');
+        shadow?.style.removeProperty('transform');
+        return;
+      }
+      if (drag || slot.classList.contains('is-hovered') || Math.abs(targetYaw - yaw) >= 0.04 || Math.abs(targetPitch - pitch) >= 0.04 || Math.abs(targetLift - lift) >= 0.01) {
+        rafId = requestAnimationFrame(step3d);
+      }
+    };
+    const schedule3d = () => {
+      if (!rafId) rafId = requestAnimationFrame(step3d);
+    };
+    slot.addEventListener('pointerenter', (event) => {
+      if (event.pointerType === 'touch') return;
+      const wasHovered = slot.classList.contains('is-hovered');
+      slot.classList.add('is-hovered');
+      jewel?.classList.add('is-interactive');
+      targetLift = 1;
+      if (!wasHovered && hoverSound && (!slot.classList.contains('story-cd-slot') || slot.classList.contains('is-cased'))) {
+        window.ArchiveSound?.cdHover?.(cdIndex, true);
+      }
+      schedule3d();
+    });
+    slot.addEventListener('pointermove', (event) => {
+      if (event.pointerType === 'touch') return;
+      if (drag) {
+        const dx = event.clientX - drag.x;
+        const dy = event.clientY - drag.y;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragged = true;
+        targetYaw = drag.yaw + dx * 0.9;
+        targetPitch = Math.max(-36, Math.min(36, drag.pitch - dy * 0.5));
+        if (Math.abs(targetYaw - lastTickAngle) >= 45) {
+          lastTickAngle = targetYaw;
+          window.ArchiveSound?.tick?.(Math.abs(Math.round(targetYaw / 45)));
+        }
+        schedule3d();
+        return;
+      }
+      if (!slot.classList.contains('is-hovered')) return;
+      const rect = slot.getBoundingClientRect();
+      const nx = ((event.clientX - rect.left) / Math.max(1, rect.width) - 0.5) * 2;
+      const ny = ((event.clientY - rect.top) / Math.max(1, rect.height) - 0.5) * 2;
+      targetYaw = nx * 15;
+      targetPitch = -ny * 11;
+      schedule3d();
+    });
+    slot.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0) return;
+      drag = { x: event.clientX, y: event.clientY, yaw: targetYaw, pitch: targetPitch, pointerId: event.pointerId };
+      lastTickAngle = targetYaw;
+      dragged = false;
+      targetLift = 1;
+      slot.classList.add('is-hovered');
+      jewel?.classList.add('is-interactive');
+      jewel?.classList.add('is-dragging');
+      try { slot.setPointerCapture(event.pointerId); } catch (_) {}
+      schedule3d();
+    });
+    const endDrag = () => {
+      if (!drag) return;
+      try { slot.releasePointerCapture(drag.pointerId); } catch (_) {}
+      drag = null;
+      jewel?.classList.remove('is-dragging');
+      if (!slot.matches(':hover')) {
+        slot.classList.remove('is-hovered');
+        targetYaw = 0; targetPitch = 0; targetLift = 0;
+        schedule3d();
+      }
+    };
+    slot.addEventListener('pointerup', endDrag);
+    slot.addEventListener('pointercancel', endDrag);
+    slot.addEventListener('pointerleave', () => {
+      if (drag) return;
+      const wasHovered = slot.classList.contains('is-hovered');
+      slot.classList.remove('is-hovered');
+      if (wasHovered && hoverSound && (!slot.classList.contains('story-cd-slot') || slot.classList.contains('is-cased'))) {
+        window.ArchiveSound?.cdHover?.(cdIndex, false);
+      }
+      targetYaw = 0; targetPitch = 0; targetLift = 0;
+      schedule3d();
+    });
+    slot.addEventListener('blur', () => {
+      endDrag();
+      slot.classList.remove('is-hovered');
+      targetYaw = 0; targetPitch = 0; targetLift = 0;
+      schedule3d();
+    });
+    slot.addEventListener('click', (event) => {
+      if (dragged) {
+        event.preventDefault();
+        event.stopPropagation();
+        dragged = false;
+        return;
+      }
+      onClick?.(event);
+    });
+  }
+
+  function renderStoryCd(item) {
+    const host = $('#story-cd');
+    if (!host) return;
+    const theme = item.cdTheme || cdThemes[item.id] || cdThemes['talk-player-style'];
+    const idx = Math.max(0, explorations.findIndex((entry) => entry.id === item.id));
+    host.innerHTML = `
+      <button type="button"
+        class="cd-jewel-slot story-cd-slot"
+        data-cd-id="${escape(item.id)}"
+        data-cd-index="${idx}"
+        aria-pressed="false"
+        style="--tray-bg:${theme.tray};--tray-edge:${theme.trayEdge};--obi-bg:${theme.obiBg};--obi-ink:${theme.obiInk};--obi-rule:${theme.obiRule}"
+        aria-label="${escape(item.name)}，当前裸盘视角；点击套上保护壳，或左右拖拽旋转">
+        ${cdJewelMarkup(item, { includeDiscBack: true })}
+      </button>
+      <span class="story-cd-cue" aria-hidden="true">点击套上保护壳 · 拖拽 360° 旋转</span>
+    `;
+    const slot = $('.story-cd-slot', host);
+    const cue = $('.story-cd-cue', host);
+    const updateCaseState = (cased) => {
+      slot.classList.toggle('is-cased', cased);
+      slot.setAttribute('aria-pressed', String(cased));
+      slot.setAttribute('aria-label', cased
+        ? `${item.name}，已套上保护壳；点击取下保护壳，或左右拖拽旋转`
+        : `${item.name}，当前裸盘视角；点击套上保护壳，或左右拖拽旋转`);
+      if (cue) cue.textContent = cased ? '点击取下保护壳 · 拖拽 360° 旋转' : '点击套上保护壳 · 拖拽 360° 旋转';
+    };
+    bindCd3d(slot, {
+      cdIndex: idx,
+      hoverSound: true,
+      onClick: () => {
+        const next = !slot.classList.contains('is-cased');
+        updateCaseState(next);
+        window.ArchiveSound?.cdCaseSnap?.(idx, next);
+      }
+    });
+  }
+
+  function renderExplore() {
+    const listEl = $('#explore-list');
+    if (!listEl) return;
+    const filtered = exploreFilter === 'all' ? explorations : explorations.filter((entry) => entry.kind === exploreFilter);
+    const counterEl = $('#explore-counter');
+    if (counterEl) counterEl.textContent = `${pad(filtered.length)} / ${pad(explorations.length)}`;
+    listEl.className = 'cd-showcase';
+    if (!filtered.length) {
+      listEl.innerHTML = '';
+      return;
+    }
+    listEl.innerHTML = `
+      <div class="cd-desk-grid" role="region" aria-label="探索光盘陈列架">
+        ${filtered.map((entry, idx) => {
+          const theme = entry.cdTheme || cdThemes[entry.id] || cdThemes['talk-player-style'];
+          return `
+          <button type="button"
+            class="cd-jewel-slot"
+            data-cd-id="${escape(entry.id)}"
+            data-cd-index="${idx}"
+            data-open="${entry.id}"
+            style="--tray-bg:${theme.tray};--tray-edge:${theme.trayEdge};--obi-bg:${theme.obiBg};--obi-ink:${theme.obiInk};--obi-rule:${theme.obiRule}"
+            aria-label="打开${escape(entry.title)}">
+            ${cdJewelMarkup(entry)}
+          </button>`;
+        }).join('')}
+      </div>
+    `;
+    $$('.cd-jewel-slot', listEl).forEach((row) => bindCd3d(row, {
+      cdIndex: Number(row.dataset.cdIndex || 0),
+      hoverSound: true
+    }));
   }
 
   function figure(page, item) {
     return `<figure class="slide"><button class="slide-button" type="button" data-page="${page}" aria-label="放大查看${escape(item.name)}，第 ${page} 页"><img draggable="false" src="${pagePath(page)}" width="1600" height="900" loading="lazy" decoding="async" alt="${escape(item.name)} · ${escape(item.chapters.find((chapter) => page >= chapter.from && page <= chapter.to)?.title || '设计案例')} · 第 ${page} 页"></button><figcaption><span>${escape(item.name)} / P.${pad(page)}</span></figcaption></figure>`;
   }
 
+  function talkFigure(page, item, chapterTitle, pptNum, overlays) {
+    const hasOverlays = Boolean(overlays?.length);
+    const src = hasOverlays ? `${item.mediaBase}/slides/slide_${pad(page)}_frame.webp` : talkSlidePath(item, page);
+    const overlayHtml = overlays?.length
+      ? overlays.map((ov) => `<video class="slide-phone-video" style="left:${ov.left};top:${ov.top};width:${ov.width};height:${ov.height}" src="${escape(ov.src)}" autoplay loop muted playsinline preload="metadata"></video>`).join('')
+      : '';
+    return `<figure class="slide"><div class="slide-stage${hasOverlays ? ' has-overlays' : ''}">${overlayHtml}<button class="slide-button" type="button" data-page="${page}" aria-label="放大查看${escape(item.name)}，第 ${pptNum} 页"><img draggable="false" src="${src}" width="1600" height="900" loading="lazy" decoding="async" alt="${escape(item.name)} · ${escape(chapterTitle)} · 第 ${pptNum} 页"></button></div><figcaption><span>${escape(chapterTitle)} / P.${pad(pptNum)}</span></figcaption></figure>`;
+  }
+
+  function relatedSection(item) {
+    if (!item.related?.length) return '';
+    const targets = item.related.map((id) => allEntries.find((entry) => entry.id === id)).filter(Boolean);
+    if (!targets.length) return '';
+    return `<div class="related-strip"><span class="related-strip-label">RELATED / 关联延伸</span><div class="related-cards">${targets.map((target) => `<button class="related-card" type="button" data-open="${target.id}"><div><span class="related-card-meta">${escape(target.code)} · ${escape(target.kindLabel || target.subtitle)}</span><span class="related-card-title">${escape(target.name)}</span></div><span aria-hidden="true">↗</span></button>`).join('')}</div></div>`;
+  }
+
   function renderProject(item) {
     const chapters = item.chapters.map((chapter, index) => `<section class="gallery-chapter" id="${item.id}-chapter-${index}" aria-labelledby="${item.id}-heading-${index}"><div class="chapter-heading" data-micro-trigger><span>${pad(index + 1)} / CASE STUDY</span><h3 id="${item.id}-heading-${index}">${escape(chapter.title)}${microObject(chapterObjects[item.id]?.[index] || projectObject[item.id], 'chapter-object-mark')}</h3><span>${chapter.to - chapter.from + 1} PAGES</span></div>${item.gallery.filter((page) => page >= chapter.from && page <= chapter.to).map((page) => figure(page, item)).join('')}</section>`).join('');
-    $('#story-body').innerHTML = `<p class="story-subtitle">${escape(item.subtitle)}</p><p class="story-summary">${escape(item.summary)}</p><div class="story-facts"><div><span class="fact-label">MY ROLE</span>${escape(item.role)}</div>${item.date ? `<div><span class="fact-label">PERIOD</span>${escape(item.date)}</div>` : ''}</div><div class="metrics" aria-label="项目成果">${item.metrics.map((metric) => `<div><span class="metric-value">${metricValue(metric.value)}</span><span class="metric-label">${escape(metric.label)}</span><span class="metric-note">${escape(metric.note)}</span></div>`).join('')}</div><div class="case-reading-heading"><h3 class="story-section-heading">完整项目</h3><span>${item.gallery.length} 页 / 全部呈现</span></div><nav class="chapter-nav" aria-label="案例章节">${item.chapters.map((chapter, index) => `<a href="#${item.id}-chapter-${index}" data-chapter="${index}">${escape(chapter.title)} <span aria-hidden="true">↘</span></a>`).join('')}</nav><div class="full-gallery">${chapters}</div>${endNavigation(item)}`;
+    $('#story-body').innerHTML = `<p class="story-subtitle">${escape(item.subtitle)}</p><p class="story-summary">${escape(item.summary)}</p><div class="story-facts"><div><span class="fact-label">MY ROLE</span>${escape(item.role)}</div>${item.date ? `<div><span class="fact-label">PERIOD</span>${escape(item.date)}</div>` : ''}</div><div class="metrics" aria-label="项目成果">${item.metrics.map((metric) => `<div><span class="metric-value">${metricValue(metric.value)}</span><span class="metric-label">${escape(metric.label)}</span><span class="metric-note">${escape(metric.note)}</span></div>`).join('')}</div><div class="case-reading-heading"><h3 class="story-section-heading">完整项目</h3><span>${item.gallery.length} 页 / 全部呈现</span></div><nav class="chapter-nav" aria-label="案例章节">${item.chapters.map((chapter, index) => `<a href="#${item.id}-chapter-${index}" data-chapter="${index}">${escape(chapter.title)} <span aria-hidden="true">↘</span></a>`).join('')}</nav><div class="full-gallery">${chapters}</div>${relatedSection(item)}${endNavigation(item)}`;
+    $$('[data-chapter]', story).forEach((link) => link.addEventListener('click', (event) => {
+      event.preventDefault();
+      $(`#${item.id}-chapter-${link.dataset.chapter}`, story)?.scrollIntoView({ behavior: reducedMotion.matches ? 'instant' : 'smooth', block: 'start' });
+    }));
+  }
+
+  function renderExploration(item) {
+    if (item.kind === 'tool') {
+      const tagsHtml = item.tags?.length ? `<h3 class="story-section-heading">核心能力规划</h3><div class="tags">${item.tags.map((tag) => `<span>${escape(tag)}</span>`).join('')}</div>` : '';
+      const linksHtml = item.links?.length
+        ? `<div class="profile-contact">${item.links.map((link) => `<a href="${escape(link.url)}" target="_blank" rel="noopener">${escape(link.label)} ↗</a>`).join('')}</div>`
+        : `<p class="metric-note">工具入口与实机演示正在整理接入中，可在 <code>data.js</code> 中补充在线地址与演示素材。</p>`;
+      $('#story-body').innerHTML = `<p class="story-subtitle">${escape(item.subtitle)}</p><p class="story-summary">${escape(item.summary)}</p><div class="story-facts"><div><span class="fact-label">ROLE</span>${escape(item.role)}</div><div><span class="fact-label">STATUS</span>${escape(item.status || item.date)}</div></div>${tagsHtml}${linksHtml}${relatedSection(item)}${endNavigation(item)}`;
+      return;
+    }
+
+    const metricsHtml = item.metrics?.length ? `<div class="metrics" aria-label="分享概览">${item.metrics.map((metric) => `<div><span class="metric-value">${metricValue(metric.value)}</span><span class="metric-label">${escape(metric.label)}</span><span class="metric-note">${escape(metric.note)}</span></div>`).join('')}</div>` : '';
+    const chapterNavHtml = `<nav class="chapter-nav" aria-label="分享章节">${item.chapters.map((chapter, index) => `<a href="#${item.id}-chapter-${index}" data-chapter="${index}">${escape(chapter.title)} <span aria-hidden="true">↘</span></a>`).join('')}</nav>`;
+    let pptCursor = 0;
+    const chaptersHtml = item.chapters.map((chapter, index) => {
+      const slidesHtml = (chapter.slides || []).map((page) => {
+        pptCursor += 1;
+        return talkFigure(page, item, chapter.title, pptCursor, chapter.slideOverlays?.[page]);
+      }).join('');
+      return `<section class="gallery-chapter" id="${item.id}-chapter-${index}" aria-labelledby="${item.id}-heading-${index}"><div class="chapter-heading"><span>${pad(index + 1)} / KEYNOTE</span><h3 id="${item.id}-heading-${index}">${escape(chapter.title)}</h3><span>${chapter.slides.length} SLIDES</span></div>${chapter.desc ? `<p class="chapter-desc">${escape(chapter.desc)}</p>` : ''}${slidesHtml}</section>`;
+    }).join('');
+
+    $('#story-body').innerHTML = `<p class="story-subtitle">${escape(item.subtitle)}</p><p class="story-summary">${escape(item.summary)}</p><div class="story-facts"><div><span class="fact-label">OCCASION</span>${escape(item.role)}</div>${item.date ? `<div><span class="fact-label">DATE</span>${escape(item.date)}</div>` : ''}</div>${metricsHtml}${chapterNavHtml}<div class="full-gallery">${chaptersHtml}</div>${relatedSection(item)}${endNavigation(item)}`;
+
     $$('[data-chapter]', story).forEach((link) => link.addEventListener('click', (event) => {
       event.preventDefault();
       $(`#${item.id}-chapter-${link.dataset.chapter}`, story)?.scrollIntoView({ behavior: reducedMotion.matches ? 'instant' : 'smooth', block: 'start' });
@@ -173,9 +555,10 @@
   }
 
   function endNavigation(item) {
-    const index = items.findIndex((entry) => entry.id === item.id);
-    const next = items[(index + 1) % items.length];
-    return `<div class="story-end"><button type="button" data-back>← 返回磁带架</button><button type="button" data-open="${next.id}">下一件 / ${escape(next.name)} ↗</button></div>`;
+    const pool = item.kind ? explorations : items;
+    const index = pool.findIndex((entry) => entry.id === item.id);
+    const next = pool[(index + 1) % pool.length];
+    return `<div class="story-end"><button type="button" data-back>← ${item.kind ? '返回探索' : '返回磁带架'}</button><button type="button" data-open="${next.id}">${item.kind ? '下一张 CD' : '下一件'} / ${escape(next.name)} ↗</button></div>`;
   }
 
   function experienceMarkup() {
@@ -197,8 +580,8 @@
 
   function animateReading(entering, duration = entering ? 520 : 160) {
     const elements = entering
-      ? [$('#story-content'), $('.object-caption', story)]
-      : $$('.story-header, .story-index, .reading-progress, .object-small-label, .object-caption, #story-content', story);
+      ? [$('#story-content'), $('.object-caption', story), ...(activeItem?.kind ? [$('#story-cd')] : [])]
+      : $$('.story-header, .story-index, .reading-progress, .object-small-label, .object-caption, #story-content', story).concat(activeItem?.kind ? [$('#story-cd')] : []);
     // Sample before cancelling an unfinished entrance; an early return must
     // fade from what is on screen, rather than flashing the reader to opacity 1.
     const previous = elements.map((element) => {
@@ -227,7 +610,10 @@
   function renderStory(item) {
     activeItem = item;
     story.dataset.item = item.id;
-    select(items.findIndex((entry) => entry.id === item.id), false);
+    const isCd = Boolean(item.kind);
+    const shelfIndex = items.findIndex((entry) => entry.id === item.id);
+    if (shelfIndex >= 0) select(shelfIndex, false);
+    renderStoryIndex(isCd ? explorations : items);
     story.style.setProperty('--story-paper', item.paper);
     story.style.setProperty('--accent', item.accent);
     story.style.setProperty('--ink', '#2d3530');
@@ -238,12 +624,23 @@
     $('#story-title').toggleAttribute('data-micro-trigger', Boolean(projectObject[item.id]));
     if (projectObject[item.id]) $('#story-title').insertAdjacentHTML('beforeend', microObject(projectObject[item.id], 'story-object-mark'));
     $('#story-header-label').textContent = item.code;
-    $('#story-object-label').textContent = `${item.id === 'about' || item.id === 'experience' ? 'PERSONAL RECORDING' : 'ORIGINAL RECORDING'} / ${pad(selected + 1)}`;
+    $('#story-object-label').textContent = item.kind
+      ? `${item.kind === 'talk' ? 'KEYNOTE' : 'DESIGN LAB'} / ${item.track}`
+      : `${item.id === 'about' || item.id === 'experience' ? 'PERSONAL RECORDING' : 'ORIGINAL RECORDING'} / ${pad(selected + 1)}`;
+    $('#story-back').setAttribute('aria-label', isCd ? '返回探索' : '返回磁带架');
+    const storyCassette = $('#story-cassette');
+    const storyCd = $('#story-cd');
+    storyCassette.hidden = isCd;
+    storyCd.hidden = !isCd;
     $('#story-cassette').setAttribute('aria-label', item.id === 'about' ? '徐晓强的个人介绍折页' : `${item.name}，卡带正面视角`);
+    if (isCd) renderStoryCd(item);
+    else storyCd.innerHTML = '';
     $('#object-caption-name').textContent = item.name;
     $('#object-caption-kind').textContent = item.subtitle;
     $$('#story-index button').forEach((button) => button.setAttribute('aria-current', String(button.dataset.storyItem === item.id)));
-    if (item.gallery) renderProject(item); else renderProfile(item);
+    if (item.kind) renderExploration(item);
+    else if (item.gallery) renderProject(item);
+    else renderProfile(item);
     story.scrollTop = 0;
     $('#reading-progress').style.width = '0%';
     document.title = `${item.name} — Simo`;
@@ -258,6 +655,7 @@
 
   function showCollection(layout = document.body.dataset.layout || 'shelf') {
     const reveal = () => {
+      delete document.body.dataset.section;
       applyCollectionLayout(layout);
       // Leaving the folded profile must clear its route and scroll position.
       // Otherwise scroll anchoring keeps the newly visible directory offscreen.
@@ -272,8 +670,23 @@
     } else reveal();
   }
 
+  function showExplore(route = true) {
+    const reveal = () => {
+      document.body.dataset.section = 'explore';
+      if (route) history.replaceState({ portfolioSection: 'explore' }, '', '#explore');
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      updateHeaderShade();
+    };
+    if (story.open) {
+      const closing = closeStory();
+      const revision = viewRevision;
+      closing.then(() => { if (revision === viewRevision && !story.open) reveal(); });
+    } else reveal();
+  }
+
   function revealAbout(route = true, hash = 'about', instant = false) {
     const reveal = () => {
+      delete document.body.dataset.section;
       document.body.dataset.layout = 'shelf';
       $$('.view-switch [data-layout]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.layout === 'shelf')));
       const index = items.findIndex((item) => item.id === 'about');
@@ -296,7 +709,7 @@
   }
 
   function openItem(id, trigger, route = true) {
-    const item = items.find((entry) => entry.id === id);
+    const item = allEntries.find((entry) => entry.id === id);
     if (!item || !authenticated) return;
     if (id === 'about') { revealAbout(route); return; }
     const wasOpen = story.open;
@@ -329,12 +742,26 @@
     // Cover the shelf early in the flight so its tapes and folded profile
     // clear before the project copy becomes readable.
     if (!reducedMotion.matches && !wasOpen) story.animate([
-      { backgroundColor: 'rgba(238,237,231,0)' }, { backgroundColor: item.paper }
+      { backgroundColor: 'rgba(232,231,227,0)' }, { backgroundColor: item.paper }
     ], { duration: 320, easing: 'cubic-bezier(.22,.72,.18,1)' });
     animateReading(true);
-    scene.open(id, { fromShelf: !wasOpen && document.body.dataset.layout !== 'index' }).then(() => {
+    if (item.kind) {
+      if (scene?.activeId) {
+        scene.cancelFlights?.();
+        const prevModel = scene.models?.get?.(scene.activeId);
+        if (prevModel) scene.mountHome(prevModel);
+        scene.activeId = null;
+        scene.phase = 'shelf';
+      }
+      const cdIdx = Math.max(0, explorations.findIndex((entry) => entry.id === item.id));
+      if (!wasOpen) window.ArchiveSound?.cdOpen?.(cdIdx);
+      else window.ArchiveSound?.cdHover?.(cdIdx, true);
       if (revision === viewRevision) story.classList.remove('is-transitioning');
-    });
+    } else {
+      scene.open(id, { fromShelf: !wasOpen && document.body.dataset.layout !== 'index' }).then(() => {
+        if (revision === viewRevision) story.classList.remove('is-transitioning');
+      });
+    }
     if (wasOpen) $('#story-back').focus({ preventScroll: true });
   }
 
@@ -353,14 +780,15 @@
     story.style.backgroundColor = background;
     const chromeFinished = animateReading(false, chromeDuration);
     if (!chromeDuration) story.classList.add('is-reading-hidden');
-    const flightFinished = scene.close();
+    if (activeItem?.kind) window.ArchiveSound?.cdClose?.();
+    const flightFinished = activeItem?.kind ? Promise.resolve(true) : scene.close();
     const returning = (async () => {
       try {
         await chromeFinished;
         if (revision !== viewRevision) return false;
         story.classList.add('is-reading-hidden');
         const backgroundAnimation = reducedMotion.matches ? null : story.animate([
-          { backgroundColor: background }, { backgroundColor: 'rgba(238,237,231,0)' }
+          { backgroundColor: background }, { backgroundColor: 'rgba(232,231,227,0)' }
         ], { duration: 760 - chromeDuration, easing: 'cubic-bezier(.22,.72,.18,1)', fill: 'forwards' });
         const [finished] = await Promise.all([
           flightFinished,
@@ -405,10 +833,19 @@
   function syncRoute() {
     const id = location.hash.slice(1);
     if (['contact', 'experience'].includes(id)) { revealAbout(false, id); return; }
-    if (items.some((item) => item.id === id)) {
+    if (id === 'explore') {
+      showExplore(false);
+      return;
+    }
+    if (allEntries.some((item) => item.id === id)) {
+      const target = allEntries.find((item) => item.id === id);
+      if (target?.kind) document.body.dataset.section = 'explore';
+      else delete document.body.dataset.section;
       ownsHistoryEntry = Boolean(history.state?.fromShelf);
       openItem(id, null, false);
     } else {
+      if (history.state?.portfolioSection === 'explore') { showExplore(false); return; }
+      delete document.body.dataset.section;
       if (['shelf', 'index'].includes(history.state?.portfolioLayout)) applyCollectionLayout(history.state.portfolioLayout);
       closeStory();
     }
@@ -429,6 +866,7 @@
       // Resolve the actual unfolded end after fonts and the mobile viewport fit.
       if (!story.open) revealAbout(false, id, true);
     } else if (!story.open && !items.some((item) => item.id === id)) {
+    } else if (!story.open && !allEntries.some((item) => item.id === id) && id !== 'explore') {
       select(0, false, true);
       window.scrollTo({ top: 0, behavior: 'instant' });
       scene.updatePaperScroll();
@@ -492,8 +930,9 @@
   }
 
   function showImage(page) {
-    if (!activeItem?.gallery) return;
-    imagePages = activeItem.gallery;
+    const pages = activeItem?.gallery || (activeItem?.kind === 'talk' ? activeItem.chapters.flatMap((c) => c.slides || []) : null);
+    if (!pages?.length) return;
+    imagePages = pages;
     imageIndex = Math.max(0, imagePages.indexOf(page));
     if (!lightbox.open) lightbox.showModal();
     updateImage();
@@ -503,9 +942,9 @@
     const page = imagePages[imageIndex];
     const image = $('#full-image');
     setImageZoom(false);
-    image.src = fullPagePath(page);
+    image.src = activeItem.kind === 'talk' ? talkSlidePath(activeItem, page) : fullPagePath(page);
     image.alt = `${activeItem.name}，第 ${page} 页大图`;
-    $('#image-view-title').textContent = `${activeItem.name} / P.${pad(page)}`;
+    $('#image-view-title').textContent = `${activeItem.name} / ${activeItem.kind === 'talk' ? 'SLIDE' : 'P.'} ${pad(page)}`;
     $('#image-counter').textContent = `${pad(imageIndex + 1)} / ${pad(imagePages.length)}`;
     $('#image-prev').disabled = imageIndex === 0;
     $('#image-next').disabled = imageIndex === imagePages.length - 1;
@@ -548,6 +987,15 @@
     event.preventDefault();
     showCollection(link.hasAttribute('data-home') ? 'shelf' : undefined);
   }));
+  $$('[data-explore-nav]').forEach((link) => link.addEventListener('click', (event) => {
+    event.preventDefault();
+    showExplore(true);
+  }));
+  $$('[data-explore-filter]').forEach((button) => button.addEventListener('click', () => {
+    exploreFilter = button.dataset.exploreFilter;
+    $$('[data-explore-filter]').forEach((btn) => btn.setAttribute('aria-pressed', String(btn === button)));
+    renderExplore();
+  }));
   $$('.header-nav a[href="#contact"]').forEach((link) => link.addEventListener('click', (event) => {
     event.preventDefault(); revealAbout(true, 'contact');
   }));
@@ -562,8 +1010,18 @@
   $('#shelf-next').addEventListener('click', () => stepShelf(1));
   $('#now-open').addEventListener('click', (event) => openItem(items[selected].id, event.currentTarget));
   $('#story-back').addEventListener('click', requestClose);
-  $('#story-prev').addEventListener('click', () => openItem(items[(selected + items.length - 1) % items.length].id));
-  $('#story-next').addEventListener('click', () => openItem(items[(selected + 1) % items.length].id));
+  $('#story-prev').addEventListener('click', () => {
+    if (activeItem?.kind) {
+      const idx = Math.max(0, explorations.findIndex((entry) => entry.id === activeItem.id));
+      openItem(explorations[(idx + explorations.length - 1) % explorations.length].id);
+    } else openItem(items[(selected + items.length - 1) % items.length].id);
+  });
+  $('#story-next').addEventListener('click', () => {
+    if (activeItem?.kind) {
+      const idx = Math.max(0, explorations.findIndex((entry) => entry.id === activeItem.id));
+      openItem(explorations[(idx + 1) % explorations.length].id);
+    } else openItem(items[(selected + 1) % items.length].id);
+  });
   story.addEventListener('cancel', (event) => { event.preventDefault(); requestClose(); });
   story.addEventListener('scroll', updateProgress, { passive: true });
   window.addEventListener('resize', updateProgress, { passive: true });

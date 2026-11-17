@@ -48,7 +48,7 @@ html { background: var(--paper); }
 body > .viewport-cover {
   top: calc(-1 * max(160px, var(--viewport-cover-edge)));
   height: calc(max(160px, var(--viewport-cover-edge)) + var(--safe-area-top) + var(--visual-viewport-top) + var(--top-overscroll) + 44px);
-  background: linear-gradient(180deg, var(--paper) 0, var(--paper) calc(100% - 44px), rgba(238, 237, 231, 0) 100%);
+  background: linear-gradient(180deg, var(--paper) 0, var(--paper) calc(100% - 44px), rgba(232, 231, 227, 0) 100%);
   opacity: 1;
   transition: none;
 }
@@ -71,7 +71,7 @@ body::before {
   height: calc(164px + var(--safe-area-top) + var(--visual-viewport-top));
   z-index: 25;
   pointer-events: none;
-  background: linear-gradient(180deg, var(--paper) 0, var(--paper) calc(112px + var(--safe-area-top) + var(--visual-viewport-top)), rgba(238, 237, 231, .88) calc(128px + var(--safe-area-top) + var(--visual-viewport-top)), rgba(238, 237, 231, 0) 100%);
+  background: linear-gradient(180deg, var(--paper) 0, var(--paper) calc(112px + var(--safe-area-top) + var(--visual-viewport-top)), rgba(232, 231, 227, .88) calc(128px + var(--safe-area-top) + var(--visual-viewport-top)), rgba(232, 231, 227, 0) 100%);
   opacity: 0;
   transition: opacity 180ms ease;
 }

@@ -44,11 +44,12 @@
   z-index: 0;
   pointer-events: none;
   border-radius: 50%;
-  background: radial-gradient(ellipse 68% 58% at 62% 45%,
-    rgba(34,40,29,.22) 0%,
-    rgba(34,40,29,.12) 38%,
-    rgba(34,40,29,.04) 64%,
-    transparent 86%);
+  background: radial-gradient(ellipse 56% 48% at 58% 45%,
+    rgba(34,40,29,.20) 0%,
+    rgba(34,40,29,.10) 40%,
+    rgba(34,40,29,.03) 64%,
+    transparent 82%);
+  filter: blur(4px);
   transform: translate3d(calc(var(--breeze-shadow-lift,0) * 4px),var(--breeze-shadow-y,8px),0)
     rotate(calc(var(--breeze-shadow-lift,0) * 1.2deg))
     scaleX(calc(.95 + var(--breeze-shadow-lift,0) * .08))

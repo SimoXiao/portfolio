@@ -295,6 +295,57 @@
       });
     },
 
+    cdHover(index = 0, opening = true) {
+      const nowMs = performance.now();
+      if (nowMs - lastHoverSoundAt < 50) return;
+      lastHoverSoundAt = nowMs;
+      withAudio((audio) => {
+        const t = audio.currentTime;
+        const pitch = 1 + (index % 3) * 0.05;
+        if (opening) {
+          playNoiseBurst(audio, { time: t, duration: 0.014, freq: 3400 * pitch, q: 3.1, gain: 0.18 });
+          playBodyPulse(audio, { time: t, startFreq: 310 * pitch, endFreq: 128 * pitch, duration: 0.024, gain: 0.16 });
+          playNoiseBurst(audio, { time: t + 0.05, duration: 0.032, freq: 1850 * pitch, q: 1.8, gain: 0.08, pink: true, attack: 0.008 });
+        } else {
+          playNoiseBurst(audio, { time: t, duration: 0.012, freq: 2300 * pitch, q: 2.6, gain: 0.11 });
+          playBodyPulse(audio, { time: t + 0.006, startFreq: 195 * pitch, endFreq: 92 * pitch, duration: 0.020, gain: 0.11 });
+        }
+      });
+    },
+
+    cdCaseSnap(index = 0, cased = true) {
+      withAudio((audio) => {
+        const t = audio.currentTime;
+        const pitch = 1 + (index % 3) * 0.04;
+        if (cased) {
+          playNoiseBurst(audio, { time: t, duration: 0.018, freq: 2600 * pitch, q: 2.2, gain: 0.18 });
+          playBodyPulse(audio, { time: t + 0.04, startFreq: 340 * pitch, endFreq: 122, duration: 0.030, gain: 0.25 });
+          playNoiseBurst(audio, { time: t + 0.045, duration: 0.013, freq: 3550 * pitch, q: 3.2, gain: 0.24 });
+        } else {
+          playNoiseBurst(audio, { time: t, duration: 0.015, freq: 3100 * pitch, q: 2.8, gain: 0.19 });
+          playBodyPulse(audio, { time: t + 0.012, startFreq: 220 * pitch, endFreq: 96, duration: 0.026, gain: 0.19 });
+        }
+      });
+    },
+
+    cdOpen(index = 0) {
+      withAudio((audio) => {
+        const t = audio.currentTime;
+        const pitch = 1 + (index % 3) * 0.04;
+        playNoiseBurst(audio, { time: t, duration: 0.016, freq: 3300 * pitch, q: 2.9, gain: 0.22 });
+        playBodyPulse(audio, { time: t, startFreq: 295 * pitch, endFreq: 112, duration: 0.028, gain: 0.22 });
+        playNoiseBurst(audio, { time: t + 0.075, duration: 0.14, freq: 1450, q: 1.4, gain: 0.08, pink: true, attack: 0.03 });
+      });
+    },
+
+    cdClose() {
+      withAudio((audio) => {
+        const t = audio.currentTime;
+        playNoiseBurst(audio, { time: t, duration: 0.014, freq: 2800, q: 2.6, gain: 0.18 });
+        playBodyPulse(audio, { time: t + 0.01, startFreq: 215, endFreq: 86, duration: 0.028, gain: 0.19 });
+      });
+    },
+
     paperRustle(progressDelta = 0.05) {
       const nowMs = performance.now();
       if (nowMs - lastPaperSoundAt < 95) return;
