@@ -734,6 +734,8 @@
     else if (item.gallery) renderProject(item);
     else renderProfile(item);
     story.scrollTop = 0;
+    lastStoryScrollTop = 0;
+    programmaticScrollUntil = performance.now() + 180;
     $('#reading-progress').style.width = '0%';
     document.title = `${item.name} — Simo`;
     requestAnimationFrame(updateProgress);
@@ -746,16 +748,31 @@
   }
 
   const SECTION_FLOW = ['about', 'works', 'explore', 'contact'];
+  const DETAIL_PROJECTS = items.filter((entry) => entry.id !== 'about');
   let programmaticScrollUntil = 0;
+  let lastObservedScrollY = window.scrollY;
+  let lastStoryScrollTop = 0;
+  let lastScrollMovedAt = performance.now() - 500;
   const getCurrentSection = () => {
     const section = document.body.dataset.section;
     return ['about', 'explore', 'contact'].includes(section) ? section : 'works';
   };
+  function getDetailNeighbours() {
+    if (!story.open || !activeItem) return { prev: null, next: null };
+    const pool = activeItem.kind ? explorations : DETAIL_PROJECTS;
+    const idx = pool.findIndex((entry) => entry.id === activeItem.id);
+    if (idx < 0) return { prev: null, next: null };
+    return {
+      prev: idx > 0 ? pool[idx - 1] : null,
+      next: idx < pool.length - 1 ? pool[idx + 1] : null
+    };
+  }
   function instantScrollTo(top) {
     programmaticScrollUntil = performance.now() + 140;
     window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
   }
   function getSectionShiftTargets(sectionKey = getCurrentSection()) {
+    if (story.open) return [$('#story-content', story), $('.story-object-inner', story)].filter(Boolean);
     if (sectionKey === 'about') return [$('#about .about-stage-only')].filter(Boolean);
     if (sectionKey === 'explore') return [$('#explore .cd-showcase')].filter(Boolean);
     if (sectionKey === 'contact') return [$('#contact .contact-sheet')].filter(Boolean);
@@ -1210,7 +1227,14 @@
     } else openItem(items[(selected + 1) % items.length].id);
   });
   story.addEventListener('cancel', (event) => { event.preventDefault(); requestClose(); });
-  story.addEventListener('scroll', updateProgress, { passive: true });
+  story.addEventListener('scroll', () => {
+    const now = performance.now();
+    if (now > programmaticScrollUntil && Math.abs(story.scrollTop - lastStoryScrollTop) >= 1) {
+      lastScrollMovedAt = now;
+    }
+    lastStoryScrollTop = story.scrollTop;
+    updateProgress();
+  }, { passive: true });
   window.addEventListener('resize', updateProgress, { passive: true });
   window.addEventListener('popstate', () => { finishInitialView(); syncRoute(); });
   window.addEventListener('hashchange', () => { finishInitialView(); syncRoute(); });
@@ -1258,8 +1282,6 @@
   // without cancelling wheel or touch scrolling, so returning keeps the context.
   let shelfFrame = 0;
   let hasPageScroll = window.scrollY > 8;
-  let lastObservedScrollY = window.scrollY;
-  let lastScrollMovedAt = performance.now() - 500;
   const updateHeaderShade = () => {
     const next = window.scrollY > 8;
     if (next !== hasPageScroll) {
@@ -1303,7 +1325,8 @@
   }, { passive: true });
 
   // Four-section vertical flow with tactile boundary damping:
-  // about (#1) <-> works (#2, default landing) <-> explore (#3) <-> contact (#4).
+  // about (#1) <-> works (#2, default landing) <-> explore (#3) <-> contact (#4),
+  // plus vertical boundary transitions between adjacent detail views inside #story-dialog.
   (() => {
     const mainEl = $('#main-content');
     if (!mainEl) return;
@@ -1311,9 +1334,8 @@
     cue.id = 'section-damping-cue';
     cue.className = 'section-damping-cue';
     cue.setAttribute('aria-hidden', 'true');
-    cue.innerHTML = '<span class="damping-cue-arrow"></span><span class="damping-cue-label"></span><span class="damping-cue-bar"><i></i></span>';
+    cue.innerHTML = '<span class="fold-cue-mouse damping-cue-mouse" aria-hidden="true"><i></i></span><span class="damping-cue-label"></span><span class="damping-cue-bar"><i></i></span>';
     document.body.append(cue);
-    const cueArrow = $('.damping-cue-arrow', cue);
     const cueLabel = $('.damping-cue-label', cue);
     const cueLabels = {
       'about->works': { dir: 'down', idle: '继续下滑进入「作品」', ready: '即将进入「作品」' },
@@ -1323,28 +1345,42 @@
       'explore->contact': { dir: 'down', idle: '继续下滑进入「联系」', ready: '即将进入「联系」' },
       'contact->explore': { dir: 'up', idle: '上滑返回「探索」', ready: '即将返回「探索」' }
     };
-    const WHEEL_THRESHOLD = 240;
-    const WHEEL_HOLD_MS = 480;
-    const TOUCH_THRESHOLD = 108;
-    const BOUNDARY_SETTLE_MS = 260;
+    const WHEEL_THRESHOLD = 420;
+    const WHEEL_HOLD_MS = 640;
+    const TOUCH_THRESHOLD = 148;
+    const BOUNDARY_SETTLE_MS = 280;
+    const BURST_DELAY_MS = 115;
     let pullDir = 0;
     let pullAmount = 0;
     let decayTimer = 0;
+    let burstTimer = 0;
     let clearTransformTimer = 0;
     let lastSwitchAt = 0;
     let cooldownUntil = 0;
     let inertiaPauseUntil = 0;
     let lastWheelAt = 0;
     let lastThresholdTick = false;
+    let isBursting = false;
     let touchState = null;
 
+    const syncCueMount = () => {
+      const host = story.open ? story : document.body;
+      if (cue.parentElement !== host) host.append(cue);
+    };
+    new MutationObserver(syncCueMount).observe(story, { attributes: true, attributeFilter: ['open'] });
+    syncCueMount();
+
     const canStep = (dir) => {
+      if (story.open) {
+        const { prev, next } = getDetailNeighbours();
+        return dir < 0 ? Boolean(prev) : Boolean(next);
+      }
       const idx = SECTION_FLOW.indexOf(getCurrentSection());
       return idx >= 0 && idx + dir >= 0 && idx + dir < SECTION_FLOW.length;
     };
     const boundaryState = () => {
-      const el = document.scrollingElement || document.documentElement;
-      const scrollTop = window.scrollY;
+      const el = story.open ? story : (document.scrollingElement || document.documentElement);
+      const scrollTop = story.open ? story.scrollTop : window.scrollY;
       const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
       return {
         scrollTop,
@@ -1355,50 +1391,63 @@
     };
     const isBlocked = () => (
       !authenticated ||
-      story.open ||
+      Boolean(closingPromise) ||
       lightbox.open ||
       access.open ||
       Boolean(document.querySelector('#archive-player-queue:not([hidden])'))
     );
     const is3dDragging = () => Boolean(document.querySelector('.is-dragging, .is-spinning-360'));
-    const renderDamping = (dir, ratio, animateRelease = false) => {
+    const clearShiftTargets = () => {
+      $$('#about .about-stage-only, #collection .tape-stage, #paper-shelf, #project-index, #explore .cd-showcase, #contact .contact-sheet, #story-content, .story-object-inner').forEach((el) => {
+        el.style.removeProperty('transform');
+        el.style.removeProperty('transition');
+      });
+    };
+    const getCueCopy = (dir) => {
+      if (story.open) {
+        const { prev, next } = getDetailNeighbours();
+        const target = dir > 0 ? next : prev;
+        if (!target) return null;
+        return dir > 0
+          ? { dir: 'down', idle: `继续下滑进入「${target.name}」`, ready: `松开进入「${target.name}」`, wheelReady: `即将进入「${target.name}」` }
+          : { dir: 'up', idle: `上滑返回「${target.name}」`, ready: `松开返回「${target.name}」`, wheelReady: `即将返回「${target.name}」` };
+      }
+      const current = getCurrentSection();
+      const next = SECTION_FLOW[SECTION_FLOW.indexOf(current) + dir];
+      return cueLabels[`${current}->${next}`] || null;
+    };
+    const renderDamping = (dir, ratio, animateRelease = false, viaWheel = false) => {
+      syncCueMount();
       const targets = getSectionShiftTargets();
       const clamped = Math.max(0, Math.min(1, ratio));
+      const visualRatio = Math.pow(clamped, 1.15);
       if (clamped <= 0.005 || !dir) {
-        cue.classList.remove('is-visible');
+        cue.classList.remove('is-visible', 'is-bursting');
         cue.dataset.ready = 'false';
         cue.style.setProperty('--damping-progress', '0');
+        cue.style.setProperty('--damping-dir', '1');
         clearTimeout(clearTransformTimer);
         if (animateRelease && !reducedMotion.matches && targets.length) {
           targets.forEach((el) => {
             el.style.transition = 'transform 260ms cubic-bezier(.22,.72,.18,1)';
             el.style.transform = 'translate3d(0,0,0)';
           });
-          clearTransformTimer = setTimeout(() => {
-            $$('#about .about-stage-only, #collection .tape-stage, #paper-shelf, #project-index, #explore .cd-showcase, #contact .contact-sheet').forEach((el) => {
-              el.style.removeProperty('transform');
-              el.style.removeProperty('transition');
-            });
-          }, 270);
+          clearTransformTimer = setTimeout(clearShiftTargets, 270);
         } else {
-          $$('#about .about-stage-only, #collection .tape-stage, #paper-shelf, #project-index, #explore .cd-showcase, #contact .contact-sheet').forEach((el) => {
-            el.style.removeProperty('transform');
-            el.style.removeProperty('transition');
-          });
+          clearShiftTargets();
         }
         lastThresholdTick = false;
         return;
       }
-      const current = getCurrentSection();
-      const next = SECTION_FLOW[SECTION_FLOW.indexOf(current) + dir];
-      const copy = cueLabels[`${current}->${next}`];
+      const copy = getCueCopy(dir);
       if (!copy) return;
-      const ready = clamped >= 0.92;
+      const ready = visualRatio >= 0.88;
+      cue.classList.remove('is-bursting');
       cue.dataset.direction = copy.dir;
       cue.dataset.ready = String(ready);
-      cueArrow.textContent = copy.dir === 'up' ? '↑' : '↓';
-      cueLabel.textContent = ready ? copy.ready : copy.idle;
-      cue.style.setProperty('--damping-progress', clamped.toFixed(3));
+      cueLabel.textContent = ready ? (viaWheel && copy.wheelReady ? copy.wheelReady : copy.ready) : copy.idle;
+      cue.style.setProperty('--damping-progress', visualRatio.toFixed(3));
+      cue.style.setProperty('--damping-dir', String(dir > 0 ? 1 : -1));
       cue.classList.add('is-visible');
       if (ready && !lastThresholdTick) {
         lastThresholdTick = true;
@@ -1408,7 +1457,7 @@
       }
       if (!reducedMotion.matches && targets.length) {
         clearTimeout(clearTransformTimer);
-        const easedShift = 26 * (1 - Math.exp(-clamped * 2.4)) / (1 - Math.exp(-2.4));
+        const easedShift = 28 * (1 - Math.exp(-visualRatio * 2.1)) / (1 - Math.exp(-2.1));
         const shift = (dir > 0 ? -easedShift : easedShift).toFixed(2);
         targets.forEach((el) => {
           el.style.transition = 'none';
@@ -1418,11 +1467,30 @@
     };
     const resetDamping = (animate = true) => {
       clearTimeout(decayTimer);
+      clearTimeout(burstTimer);
+      isBursting = false;
       pullDir = 0;
       pullAmount = 0;
       renderDamping(0, 0, animate);
     };
     const commitSectionStep = (dir) => {
+      if (story.open) {
+        const { prev, next } = getDetailNeighbours();
+        const targetItem = dir > 0 ? next : prev;
+        if (!targetItem) { resetDamping(true); return; }
+        resetDamping(false);
+        const now = performance.now();
+        lastSwitchAt = now;
+        cooldownUntil = now + 980;
+        inertiaPauseUntil = now + 360;
+        programmaticScrollUntil = now + 200;
+        if (typeof navigator.vibrate === 'function' && navigator.userActivation?.hasBeenActive) {
+          try { navigator.vibrate(8); } catch (_) {}
+        }
+        window.ArchiveSound?.tick?.(dir > 0 ? 3 : 1);
+        openItem(targetItem.id);
+        return;
+      }
       const current = getCurrentSection();
       const idx = SECTION_FLOW.indexOf(current);
       const target = SECTION_FLOW[idx + dir];
@@ -1430,11 +1498,11 @@
       resetDamping(false);
       const now = performance.now();
       lastSwitchAt = now;
-      cooldownUntil = now + 920;
-      inertiaPauseUntil = now + 320;
+      cooldownUntil = now + 980;
+      inertiaPauseUntil = now + 360;
       pinnedSelection = false;
       if (typeof navigator.vibrate === 'function' && navigator.userActivation?.hasBeenActive) {
-        try { navigator.vibrate(6); } catch (_) {}
+        try { navigator.vibrate(8); } catch (_) {}
       }
       window.ArchiveSound?.tick?.(dir > 0 ? 3 : 1);
       if (target === 'about') {
@@ -1448,12 +1516,42 @@
         showContact(true, { direction: dir });
       }
     };
+    const triggerBurstAndCommit = (dir, viaWheel = false) => {
+      if (isBursting) return;
+      if (!canStep(dir)) { resetDamping(true); return; }
+      clearTimeout(decayTimer);
+      clearTimeout(burstTimer);
+      const now = performance.now();
+      lastSwitchAt = now;
+      cooldownUntil = now + 1020;
+      inertiaPauseUntil = now + 380;
+      if (reducedMotion.matches) {
+        commitSectionStep(dir);
+        return;
+      }
+      isBursting = true;
+      renderDamping(dir, 1, false, viaWheel);
+      cue.classList.add('is-bursting');
+      const targets = getSectionShiftTargets();
+      targets.forEach((el) => {
+        el.style.transition = 'transform 120ms cubic-bezier(.22,.72,.18,1)';
+        el.style.transform = 'translate3d(0,0,0)';
+      });
+      window.ArchiveSound?.tick?.(dir > 0 ? 3 : 1);
+      if (typeof navigator.vibrate === 'function' && navigator.userActivation?.hasBeenActive) {
+        try { navigator.vibrate(8); } catch (_) {}
+      }
+      burstTimer = setTimeout(() => {
+        isBursting = false;
+        commitSectionStep(dir);
+      }, BURST_DELAY_MS);
+    };
 
     window.addEventListener('wheel', (event) => {
       const now = performance.now();
       const gapSinceWheel = now - lastWheelAt;
       lastWheelAt = now;
-      if (now < cooldownUntil) {
+      if (isBursting || now < cooldownUntil) {
         if (gapSinceWheel < 160 && now - lastSwitchAt < 1350) {
           inertiaPauseUntil = Math.min(lastSwitchAt + 1350, now + 180);
         }
@@ -1486,13 +1584,13 @@
         pullDir = dir;
         pullAmount = 0;
       }
-      const step = Math.min(68, Math.abs(rawDeltaY));
+      const step = Math.min(48, Math.abs(rawDeltaY));
       pullAmount += step;
       const ratio = pullAmount / WHEEL_THRESHOLD;
-      renderDamping(dir, ratio, false);
+      renderDamping(dir, ratio, false, true);
       clearTimeout(decayTimer);
       if (pullAmount >= WHEEL_THRESHOLD) {
-        commitSectionStep(dir);
+        triggerBurstAndCommit(dir, true);
       } else {
         decayTimer = setTimeout(() => resetDamping(true), WHEEL_HOLD_MS);
       }
@@ -1562,7 +1660,7 @@
       }
       if (touchState.activeDir) {
         if (event.cancelable) event.preventDefault();
-        renderDamping(touchState.activeDir, touchState.pull / TOUCH_THRESHOLD, false);
+        renderDamping(touchState.activeDir, touchState.pull / TOUCH_THRESHOLD, false, false);
       }
     }, { passive: false });
 
@@ -1571,7 +1669,7 @@
       const { activeDir, pull } = touchState;
       touchState = null;
       if (activeDir && event.type === 'touchend' && pull >= TOUCH_THRESHOLD) {
-        commitSectionStep(activeDir);
+        triggerBurstAndCommit(activeDir, false);
       } else if (activeDir) {
         resetDamping(true);
       }
