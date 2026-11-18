@@ -18,8 +18,8 @@
   /* Match the final visible cassette gap, allowing for its shallow projection
      and the foldout's own top padding rather than adding both spacers. */
   --rack-bottom: max(0px, calc(var(--rack-row) * .5 + var(--rack-gap) - var(--paper-pad-top) - var(--archive-width) * .061));
-  --paper-ui-safe-top: calc(144px + var(--safe-area-top));
-  --paper-pad-top: clamp(16px, 2dvh, 24px);
+  --paper-ui-safe-top: calc(114px + var(--safe-area-top));
+  --paper-pad-top: clamp(10px, 1.4dvh, 14px);
   --paper-pad-bottom: calc(var(--archive-player-height, 76px) + var(--archive-player-safe-bottom, 0px) + 24px);
   --paper-width: var(--archive-width);
 }
@@ -68,10 +68,10 @@ body::before {
   content: "";
   position: fixed;
   inset: 0 0 auto;
-  height: calc(164px + var(--safe-area-top) + var(--visual-viewport-top));
+  height: calc(136px + var(--safe-area-top) + var(--visual-viewport-top));
   z-index: 25;
   pointer-events: none;
-  background: linear-gradient(180deg, var(--paper) 0, var(--paper) calc(112px + var(--safe-area-top) + var(--visual-viewport-top)), rgba(232, 231, 227, .88) calc(128px + var(--safe-area-top) + var(--visual-viewport-top)), rgba(232, 231, 227, 0) 100%);
+  background: linear-gradient(180deg, var(--paper) 0, var(--paper) calc(104px + var(--safe-area-top) + var(--visual-viewport-top)), rgba(232, 231, 227, .88) calc(116px + var(--safe-area-top) + var(--visual-viewport-top)), rgba(232, 231, 227, 0) 100%);
   opacity: 0;
   transition: opacity 180ms ease;
 }
