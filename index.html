@@ -8,7 +8,7 @@
   <title>Simo — A Collection of Design</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' rx='17' fill='%23292e2a'/%3E%3Ctext x='40' y='58' font-size='58' font-family='Georgia' text-anchor='middle' fill='%23f5f3ee'%3ES%3C/text%3E%3C/svg%3E">
   
-  <link rel="stylesheet" href="styles.css?v=20261120-about-r8">
+  <link rel="stylesheet" href="styles.css?v=20261120-about-r9">
   <link rel="stylesheet" href="cassette.css?v=20261118-mobile-hold-r1">
   <link rel="stylesheet" href="paper.css?v=20261116-uniform-paper-r7">
   <link rel="stylesheet" href="paper-print.css?v=20261119-perf-r2">
@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="profile-fonts.css?v=20261120-about-r2">
   <link rel="stylesheet" href="explore-fonts.css?v=20261117-c02-lab">
   <link rel="stylesheet" href="mp3-player.css?v=20261119-scroll-reset-r1">
-  <link rel="stylesheet" href="fold-cue.css?v=20261118-fold-wheel-r1">
+  <link rel="stylesheet" href="fold-cue.css?v=20261120-cue-r2">
   <link rel="stylesheet" href="sound-effects.css?v=20261117-flow-nav-r6">
   <link rel="stylesheet" href="pet-companion.css?v=20261118-v23-r32">
   <link rel="stylesheet" href="insights-telemetry.css?v=20261120-insights-r9">
@@ -37,16 +37,16 @@
     })();
   </script>
   <script src="auth-config.js" defer></script>
-  <script src="data.js?v=20261120-resume-r2" defer></script>
+  <script src="data.js?v=20261120-about-r5" defer></script>
   <script src="paper-content.js?v=20261120-resume-r2" defer></script>
   <script src="sound-effects.js?v=20261119-perf-r2" defer></script>
   <script src="paper.js?v=20261119-fix5-r1" defer></script>
   <script src="cassette.js?v=20261120-perf-r4" defer></script>
-  <script src="mp3-player.js?v=20261120-perf-r4" defer></script>
-  <script src="app.js?v=20261120-perf-r4" defer></script>
+  <script src="mp3-player.js?v=20261120-cue-r2" defer></script>
+  <script src="app.js?v=20261120-nav-fix-r5" defer></script>
   <script src="nav-objects.js?v=20261120-cd-obi-r6" defer></script>
   <script src="archive-player.js?v=20261119-fix5-r1" defer></script>
-  <script src="fold-cue.js?v=20261118-fold-wheel-r1" defer></script>
+  <script src="fold-cue.js?v=20261120-cue-r2" defer></script>
   <script src="pet-companion.js?v=20261120-perf-r4" defer></script>
   <script src="insights-telemetry.js?v=20261120-insights-r9" defer></script>
 </head>
@@ -63,6 +63,7 @@
     </nav>
   </header>
   <nav id="shelf-index" class="shelf-index" aria-label="磁带目录"></nav>
+  <nav id="about-index" class="shelf-index about-index" aria-label="关于页面目录"></nav>
 
   <main id="main-content">
     <section id="collection" class="collection" aria-labelledby="collection-title">
@@ -93,6 +94,10 @@
         </div>
       </div>
       <div id="explore-list" class="explore-grid"></div>
+      <div class="section-bottom-cue is-explore-cue" aria-hidden="true">
+        <span class="fold-cue-mouse"><i></i></span>
+        <span>继续下滑进入「关于」</span>
+      </div>
     </section>
 
     <section id="about" class="about-section" aria-labelledby="about-title"></section>
