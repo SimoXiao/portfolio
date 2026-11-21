@@ -7,8 +7,9 @@
   <meta name="description" content="徐晓强 Simo 的体验设计作品档案：产品体验、视觉与动效、设计系统和团队建设。">
   <title>Simo — A Collection of Design</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' rx='17' fill='%23292e2a'/%3E%3Ctext x='40' y='58' font-size='58' font-family='Georgia' text-anchor='middle' fill='%23f5f3ee'%3ES%3C/text%3E%3C/svg%3E">
+  <link rel="preload" as="image" href="assets/oneko/oneko-frenchie-v2-64.png?v=20261118-v23-r30">
   
-  <link rel="stylesheet" href="styles.css?v=20261120-explore-r2">
+  <link rel="stylesheet" href="styles.css?v=20261121-boot-r2">
   <link rel="stylesheet" href="cassette.css?v=20261118-mobile-hold-r1">
   <link rel="stylesheet" href="paper.css?v=20261116-uniform-paper-r7">
   <link rel="stylesheet" href="paper-print.css?v=20261119-perf-r2">
@@ -16,7 +17,7 @@
   <link rel="stylesheet" href="archive-player.css?v=20261119-fix5-r1">
   <link rel="stylesheet" href="micro-objects.css?v=20261120-cd-obi-r6">
   <link rel="stylesheet" href="site-details.css?v=20261120-cd-obi-r6">
-  <link rel="stylesheet" href="nav-objects.css?v=20261120-cd-obi-r7">
+  <link rel="stylesheet" href="nav-objects.css?v=20261121-cas-r1">
   <link rel="stylesheet" href="profile-fonts.css?v=20261120-about-r2">
   <link rel="stylesheet" href="explore-fonts.css?v=20261117-c02-lab">
   <link rel="stylesheet" href="mp3-player.css?v=20261119-scroll-reset-r1">
@@ -31,8 +32,8 @@
       p.rel = 'preload';
       p.as = 'script';
       if (h === 'about' || h === 'contact') p.href = 'sd-card-renderer.js?v=20261120-about-r3';
-      else if (h === 'collection' || h === 'works' || h === 'experience' || /^project\d+$/.test(h)) p.href = 'cassette-renderer.js?v=20261119-perf-r2';
-      else if (h !== 'explore' && !/^talk-|^tool-/.test(h)) p.href = 'mp3-renderer.js?v=20261120-cd-obi-r6';
+      else if (h === 'collection' || h === 'works' || h === 'experience' || /^project\d+$/.test(h)) p.href = 'cassette-renderer.js?v=20261121-perf-r2';
+      else if (h !== 'explore' && !/^talk-|^tool-/.test(h)) p.href = 'mp3-renderer.js?v=20261121-perf-r3';
       if (p.href) document.head.appendChild(p);
     })();
   </script>
@@ -41,16 +42,215 @@
   <script src="paper-content.js?v=20261120-resume-r2" defer></script>
   <script src="sound-effects.js?v=20261119-perf-r2" defer></script>
   <script src="paper.js?v=20261119-fix5-r1" defer></script>
-  <script src="cassette.js?v=20261120-perf-r4" defer></script>
+  <script src="cassette.js?v=20261121-perf-r2" defer></script>
   <script src="mp3-player.js?v=20261120-cue-r2" defer></script>
-  <script src="app.js?v=20261120-nav-fix-r8" defer></script>
+  <script src="app.js?v=20261121-perf-r3" defer></script>
   <script src="nav-objects.js?v=20261120-cd-obi-r6" defer></script>
   <script src="archive-player.js?v=20261119-fix5-r1" defer></script>
   <script src="fold-cue.js?v=20261120-cue-r2" defer></script>
-  <script src="pet-companion.js?v=20261120-perf-r4" defer></script>
+  <script src="pet-companion.js?v=20261121-boot-r2" defer></script>
   <script src="insights-telemetry.js?v=20261120-insights-r12" defer></script>
 </head>
 <body class="is-booting">
+  <div id="simo-boot-loader" class="simo-boot-loader" aria-hidden="true">
+    <div class="boot-unit">
+      <span class="frenchie-shadow" id="boot-frenchie-shadow"></span>
+      <div class="frenchie-runner" id="boot-frenchie-runner"></div>
+      <div class="stn-lcd-screen" id="boot-stn-lcd">
+        <div class="stn-lit-backdrop"></div>
+        <div class="lcd-content">
+          <div class="lcd-topline">
+            <span class="lcd-kicker-portfolio" id="boot-lcd-kicker">PORTFOLIO</span>
+            <span class="lcd-pill" id="boot-lcd-pill">STANDBY</span>
+          </div>
+          <div class="lcd-center-row">
+            <div class="lcd-brand" id="boot-lcd-brand">simo<span class="reg">®</span></div>
+            <div class="lcd-eq" id="boot-lcd-eq"><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="lcd-battery-track" id="boot-lcd-battery">
+            <span class="lcd-cell"></span><span class="lcd-cell"></span><span class="lcd-cell"></span><span class="lcd-cell"></span><span class="lcd-cell"></span>
+            <span class="lcd-cell"></span><span class="lcd-cell"></span><span class="lcd-cell"></span><span class="lcd-cell"></span><span class="lcd-cell"></span>
+          </div>
+        </div>
+        <div class="lcd-matrix-overlay"></div>
+        <div class="lcd-recess-shadow"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const loader = document.getElementById('simo-boot-loader');
+      const pet = document.getElementById('boot-frenchie-runner');
+      const shadow = document.getElementById('boot-frenchie-shadow');
+      const lcd = document.getElementById('boot-stn-lcd');
+      const kicker = document.getElementById('boot-lcd-kicker');
+      const brand = document.getElementById('boot-lcd-brand');
+      const pill = document.getElementById('boot-lcd-pill');
+      const eqBars = loader ? [...loader.querySelectorAll('#boot-lcd-eq i')] : [];
+      const cells = loader ? [...loader.querySelectorAll('#boot-lcd-battery .lcd-cell')] : [];
+      if (!loader || !pet || !shadow || !lcd) return;
+
+      const syncKickerWidth = () => {
+        if (!kicker || !brand) return;
+        kicker.style.letterSpacing = '0px';
+        const bw = kicker.getBoundingClientRect().width;
+        const tw = brand.getBoundingClientRect().width;
+        if (bw > 0 && tw > bw) {
+          kicker.style.letterSpacing = `${((tw - bw) / 8).toFixed(2)}px`;
+        }
+      };
+      syncKickerWidth();
+
+      const FRAMES = {
+        seLeap: [[5, 2]],
+        seStep: [[5, 1]],
+        runE: [[3, 0], [3, 1]],
+        alert: [[7, 3]]
+      };
+      const setFrame = (name, tick) => {
+        const pair = FRAMES[name] || FRAMES.alert;
+        const [col, row] = pair[tick % pair.length];
+        pet.style.backgroundPosition = `${((col / 7) * 100).toFixed(3)}% ${((row / 4) * 100).toFixed(3)}%`;
+        pet.classList.toggle('is-alert-pose', name === 'alert');
+      };
+
+      const TOP_NORMAL = -39.5;
+      const TOP_ALERT = -37.5;
+      const RUN_START_X = -2;
+      const RUN_END_X = 186;
+      let timeline = 0;
+      let tick = 0;
+      let readyToFinish = false;
+      let finishResolver = null;
+
+      const render = () => {
+        const t = Math.max(0, Math.min(100, timeline));
+        let chargeRatio = 0;
+        let isLit = false;
+        if (t < 20) {
+          const u = t / 20;
+          const hopIdx = u < 0.5 ? 0 : 1;
+          const hopLoc = u < 0.5 ? u * 2 : (u - 0.5) * 2;
+          const arc = Math.sin(hopLoc * Math.PI);
+          const x0 = hopIdx === 0 ? -74 : -38;
+          const x1 = hopIdx === 0 ? -38 : RUN_START_X;
+          const y0 = hopIdx === 0 ? -74 : -56;
+          const y1 = hopIdx === 0 ? -56 : TOP_NORMAL;
+          const curX = x0 + (x1 - x0) * hopLoc;
+          const groundY = y0 + (y1 - y0) * hopLoc;
+          pet.style.left = `${curX.toFixed(1)}px`;
+          pet.style.top = `${(groundY - arc * 15).toFixed(1)}px`;
+          shadow.style.left = `${(curX + 10).toFixed(1)}px`;
+          shadow.style.top = `${(groundY + 37.5).toFixed(1)}px`;
+          shadow.style.opacity = String((0.72 - arc * 0.4).toFixed(2));
+          shadow.style.transform = `scaleX(${(1 - arc * 0.35).toFixed(2)})`;
+          setFrame(hopLoc > 0.12 && hopLoc < 0.86 ? 'seLeap' : 'seStep', tick);
+        } else if (t < 92) {
+          isLit = true;
+          chargeRatio = (t - 20) / 72;
+          const curX = RUN_START_X + (RUN_END_X - RUN_START_X) * chargeRatio;
+          pet.style.left = `${curX.toFixed(1)}px`;
+          pet.style.top = `${TOP_NORMAL}px`;
+          shadow.style.left = `${(curX + 10).toFixed(1)}px`;
+          shadow.style.top = '-2px';
+          shadow.style.opacity = '0.88';
+          shadow.style.transform = 'scaleX(1)';
+          setFrame('runE', tick);
+        } else {
+          isLit = true;
+          chargeRatio = 1;
+          pet.style.left = `${RUN_END_X}px`;
+          pet.style.top = `${TOP_ALERT}px`;
+          shadow.style.left = `${RUN_END_X + 10}px`;
+          shadow.style.top = '-2px';
+          shadow.style.opacity = '0.9';
+          shadow.style.transform = 'scaleX(1)';
+          setFrame('alert', tick);
+        }
+        lcd.classList.toggle('is-lit', isLit);
+        const pct = Math.round(chargeRatio * 100);
+        if (pill) pill.textContent = !isLit ? 'STANDBY' : pct >= 99 ? 'READY' : 'CHARGING';
+        const litCells = Math.round(chargeRatio * cells.length);
+        cells.forEach((c, idx) => c.classList.toggle('is-on', idx < litCells));
+        const eqH = isLit
+          ? [4 + ((tick * 4 + pct) % 10), 6 + ((tick * 6 + pct * 2) % 8), 3 + ((tick * 3 + pct) % 11), 5 + ((tick * 7 + pct) % 9)]
+          : [3, 3, 3, 3];
+        eqBars.forEach((b, i) => { b.style.height = `${eqH[i]}px`; });
+      };
+
+      render();
+      let lastFrameAt = performance.now();
+      let lastGaitAt = lastFrameAt;
+      let rafId = 0;
+      let exiting = false;
+
+      const stepBoot = (now) => {
+        const dt = Math.min(0.05, Math.max(0.004, (now - lastFrameAt) / 1000));
+        lastFrameAt = now;
+        if (now - lastGaitAt >= 90) {
+          tick += Math.max(1, Math.floor((now - lastGaitAt) / 90));
+          lastGaitAt = now;
+        }
+
+        if (timeline < 20) {
+          // Mandatory two-hop entrance onto screen (~415ms crisp parabolic hops)
+          timeline = Math.min(20, timeline + 48 * dt);
+        } else if (timeline < 92) {
+          // Dynamic charging run: smoothly damps if still warming up; briskly glides once ready
+          if (!readyToFinish) {
+            const damp = timeline < 55 ? 1 : Math.max(0.12, (90 - timeline) / 35);
+            timeline = Math.min(89.6, timeline + 68 * damp * dt);
+          } else {
+            timeline = Math.min(92, timeline + 115 * dt);
+          }
+        } else if (timeline < 100) {
+          // Crisp 100% READY alert pose hold (~165ms) before curtain lift
+          timeline = Math.min(100, timeline + 48 * dt);
+        } else {
+          exiting = true;
+          loader.classList.add('is-exiting');
+          setTimeout(() => {
+            if (finishResolver) finishResolver();
+            setTimeout(() => loader.remove(), 320);
+          }, 180);
+          return;
+        }
+        render();
+        if (!exiting) rafId = requestAnimationFrame(stepBoot);
+      };
+      rafId = requestAnimationFrame(stepBoot);
+
+      window.__simoFinishBoot = () => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          cancelAnimationFrame(rafId);
+          loader.remove();
+          return Promise.resolve();
+        }
+        syncKickerWidth();
+        const warmTasks = [];
+        if (document.fonts?.ready) warmTasks.push(document.fonts.ready);
+        if (window.SimoLoaders) {
+          warmTasks.push(
+            Promise.resolve(window.SimoLoaders.mp3Renderer?.()).catch(() => {}),
+            Promise.resolve(window.SimoLoaders.microObjects?.()).then(() => {
+              window.ArchiveObjects?.warmUp?.();
+            }).catch(() => {})
+          );
+        }
+        Promise.race([
+          Promise.allSettled(warmTasks),
+          new Promise((r) => setTimeout(r, 1500))
+        ]).then(() => {
+          requestAnimationFrame(() => {
+            readyToFinish = true;
+          });
+        });
+        return new Promise((resolve) => {
+          finishResolver = resolve;
+        });
+      };
+    })();
+  </script>
   <div class="viewport-cover" aria-hidden="true"></div>
   <a class="skip-link" href="#collection">跳到作品集</a>
   <header class="site-header">
